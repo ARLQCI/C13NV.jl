@@ -1,310 +1,396 @@
 module Models
 
 import LinearAlgebra
+using LinearAlgebra: norm
+using LinearAlgebra: Diagonal
 using QuantumPropagators: hamiltonian, liouvillian
 using QuantumPropagators.Generators: dissipator, Generator
+using ..Units: kHz, MHz, Gauss
+
+const 𝕚 = 1im
 
 function ⊗(A, B)
     LinearAlgebra.kron(A, B)
 end
 
 
-function ZeroMatrix(N)
-    return Array{Float64}(zeros(N) * zeros(N)')
+function ZeroMatrix(T, N)
+    return Array{T}(zeros(T, N) * zeros(T, N)')
 end
 
-function IdMatrix(N)
-    return Array{Float64}(LinearAlgebra.I(N))
+ZeroMatrix(N) = ZeroMatrix(Float64, N)
+
+function IdMatrix(T, N)
+    return Array{T}(LinearAlgebra.I(N))
 end
 
+IdMatrix(N) = IdMatrix(Float64, N)
 
-function ⊕(A, B)
+
+function ⊕(A::T, B::T) where {T<:Array}
     N = size(A, 1)
     M = size(B, 1)
     @assert size(A, 2) == N
     @assert size(B, 2) == M
-    C = ZeroMatrix(N + M)
+    C = ZeroMatrix(eltype(T), N + M)
     C[1:N, 1:N] .= A[1:N, 1:N]
-    C[N+1:N+M, N+1:N+M] .= B[1:M, 1:M]
+    C[(N+1):(N+M), (N+1):(N+M)] .= B[1:M, 1:M]
     return C
 end
 
 
-"""Construct the system
+function ⊕(A::TA, B::TB) where {TA<:AbstractMatrix,TB<:AbstractMatrix}
+    ET = promote_type(eltype(TA), eltype(TB))
+    if !(A isa Array)
+        A = convert(Array{ET}, A)
+    end
+    if !(B isa Array)
+        B = convert(Array{ET}, B)
+    end
+    return ⊕(A, B)
+end
+
+
+"""Construct an eigenstate
 
 ```julia
-    H_or_L, ket, labels = make_nv_system(;
-        A_zz,  # hyperfine coupling
-        A_zx,  # hyperfine couplint
-        B,     # magnetic field
-        γ_c,   # magnetic permissibility
-        δ₋,    # static detuning from |0⟩↔|-1⟩ transition
-        δ₊,    # static detuning from |0⟩↔|+1⟩ transition
-        ω₊,    # time-dependent frequency of |0⟩↔|+1⟩ transition
-        ω₋,    # time-dependent frequency of |0⟩↔|-1⟩ transition
-        Ω₋,    # time-dependent amplitude of |0⟩↔|-1⟩ transition
-        Ω₊,    # time-dependent amplitude of |0⟩↔|+1⟩ transition
-        Λ,     # time-dependent non-coherent excitation for the |G⟩→|E⟩ manifold
-        Γ,     # spontaneous decay rate for the |E⟩→|G⟩ manifold
-        Γ₀,    # spontaneous decay rate for |0E⟩→|S⟩
-        Γ₊₁,   # spontaneous decay rate for |+1E⟩→|S⟩
-        Γ₋₁,   # spontaneous decay rate for |-1E⟩→|S⟩
-        Σ₀,    # spontaneous decay rate for |S⟩→|0G⟩
-        Σ₊₁,   # spontaneous decay rate for |S⟩→|+1G⟩
-        Σ₋₁,   # spontaneous decay rate for |S⟩→|-1G⟩
-        use_dissipation = !isnothing(Λ)
-    )
+Ψ = ket(label, labels; strict = true)
 ```
 
-return a generator, a function `ket` to construct bare basis states, and a
-list of labels.
+constructs the canonical basis state identified by `label` in a Hilbert space
+with a basis defined by `labels`. If `label` is not an element of `labels`,
+return a zero-vector if `strict = false`, and error if `strict = true`
+(default). The use of `strict = false` can be useful when working in a
+truncated Hilbert space.
+"""
+function ket(label, labels; strict = true)
+    N = length(labels)
+    i = findfirst(isequal(label), labels)
+    Ψ = zeros(ComplexF64, N)
+    if isnothing(i) && !strict
+        return Ψ
+    else
+        Ψ[i] = one(ComplexF64)
+        return Ψ
+    end
+end
+
+function bra(label, labels; strict = true)
+    return adjoint(ket(label, labels; strict))
+end
+
+
+function ketbra(l1, l2, labels; strict = true)
+    return ket(l1, labels; strict) * bra(l2, labels; strict)
+end
+
+
+# Tensor to ``𝟙 ⊗ … ⊗ Â ⊗ … ⊗ 𝟙`` where Â is in the `n`'th position of `N`
+function _n(A, n, N)
+    @assert size(A) == (size(A, 1), size(A, 2))
+    @assert 1 ≤ n ≤ N
+    𝟙 = Diagonal(ones(ComplexF64, size(A, 1)))
+    result = (n == 1) ? A : 𝟙
+    for n′ = 2:N
+        result = result ⊗ ((n′ == n) ? A : 𝟙)
+    end
+    return result
+end
+
+
+
+"""Construct the system.
+
+```julia
+H_or_L, labels = make_nv_system(; kwargs...)
+```
+
+return a generator, and a list of labels, each label a tuple of strings.
+
+# Keyword Arguments
+
+* `hyperfine_tensors`: Required if `A_zz`, `A_zx`, `A_zy` are not given. A
+  vector of 3×3  matrices. The number length of the vector, i.e., the number of
+  matrices given determines the number of C-13 atoms in the model. Defaults to
+  a single hyperfine tensor with elements `A_zz`, `A_zx`, `A_zy`.
+* `A_zz`, `A_zx`, `A_zy`: Required if `hyperfine_tensors` is not given, the
+  strength of the hyperfine coupling along the 3 spatial axes relevant in the
+  RWA, for a single C-13 atom.
+* `B`: Required. The magnitude of the magnetic field
+* `ω₊ = nothing`: The control ``ω_{+}(t) ≡ ∂ϕ_{+}(t)/∂t``
+* `ω₋ = nothing`: The control ``ω_{-}(t) ≡ ∂ϕ_{-}(t)/∂t``
+* `Ω₊ = nothing`: The control ``Ω_{+}(t)``
+* `Ω₋ = nothing`: The control ``Ω_{-}(t)``
+* `Λ = nothing`: The time-dependent optical drive. If given, implies the use of
+  the full optical Hilbert space.
+* `frame = :rwa`: One of `:rwa` or `:diag`. If `:diag`, diagonalize the
+  hyperfine interaction.
+* `θ = 0.0`: The azimuthal angle of the magnetic field
+* `ϕ = 0.0`: The polar angle of the magnetic field
+* `γ_c = 1.07kHz/Gauss`: The C-13 nuclear gyromagnetic ratio
+* `δ₋ = 0.0`: The detuning of the ``|0⟩ ↔ |-1⟩`` transition. Defined as
+  ``δ_{-} = D - B γ_e cos(θ) - ω{-}``
+* `δ₊ = 0.0`: The detuning of the ``|0⟩ ↔ |+1⟩`` transition. Defined as
+  ``δ_{+} = D - B γ_e cos(θ) - ω{+}``
+* `Γ = 0.0`: Rate for the ``|E⟩ → |G⟩`` spontaneous decay
+* `Γ₀ = 0.0`: Rate for the ``|E,0⟩ → |M⟩`` spontaneous decay
+* `Γ₊₁ = 0.0`: Rate for the ``|E,+1⟩ → |M⟩`` spontaneous decay
+* `Γ₋₁ = 0.0`: Rate for the ``|E,-1⟩ → |M⟩`` spontaneous decay
+* `Σ₀ = 0.0`: Rate for the ``|M⟩ → |G,0⟩`` spontaneous decay
+* `Σ₊₁ = 0.0`: Rate for the ``|M⟩ → |G,+1⟩`` spontaneous decay
+* `Σ₋₁ = 0.0`: Rate for the ``|M⟩ → |G,-1⟩`` spontaneous decay
+* `γ₊₁ = 0.0`: Rate for the ``|G,+1⟩ → |G,0⟩`` spontaneous decay
+* `γ₋₁ = 0.0`: Rate for the ``|G,-1⟩ → |G,0⟩`` spontaneous decay
 """
 function make_nv_system(;
     A_zz::Float64,
     A_zx::Float64,
+    A_zy::Float64 = 0.0,
+    hyperfine_tensors::Vector{Matrix{Float64}} = [[
+         0     0    A_zx
+         0     0    A_zy
+        A_zx  A_zy  A_zz
+    ],],
     B::Float64,
-    γ_c::Float64,
-    δ₋::Float64,
-    δ₊::Float64,
+    θ::Float64 = 0.0,
+    ϕ::Float64 = 0.0,
+    γ_c::Float64 = 1.07kHz/Gauss,
+    δ₋::Float64 = 0.0,
+    δ₊::Float64 = 0.0,
     ω₊ = nothing,
     ω₋ = nothing,
     Ω₊ = nothing,
     Ω₋ = nothing,
     Λ = nothing, # incoherent optical excitation (proportional to laser power)
-    Γ::Float64,
-    Γ₀::Float64,
-    Γ₊₁::Float64,
-    Γ₋₁::Float64,
-    Σ₀::Float64,
-    Σ₊₁::Float64,
-    Σ₋₁::Float64,
-    coherent_optical_drive = false,
-    use_dissipation = !isnothing(Λ),
+    Γ::Float64 = 0.0,
+    Γ₀::Float64 = 0.0,
+    Γ₊₁::Float64 = 0.0,
+    Γ₋₁::Float64 = 0.0,
+    Σ₀::Float64 = 0.0,
+    Σ₊₁::Float64 = 0.0,
+    Σ₋₁::Float64 = 0.0,
+    γ₊₁::Float64 = 0.0,
+    γ₋₁::Float64 = 0.0,
+    frame::Symbol = :rwa,  # or :diag
 )
 
-    labels_N = ["G", "E", "S"]
-    if isnothing(Λ)
-        labels_N = ["G"]
-    end
-    labels_ms = ["-1", "0", "+1"]  # only "0" for metastable state
-    if isnothing(Ω₊) && isnothing(Ω₋)
-        error("At least one of Ω₊ and Ω₋ must be given")
-    else
-        if isnothing(Ω₊)
-            labels_ms = ["-1", "0"]
-        elseif isnothing(Ω₋)
-            labels_ms = ["0", "+1"]
-        end
-    end
-    labels_mI = ["↑", "↓"]
-
-    labels = [  # for Λ ≠
-        ("G", ms_label, mI_label) for ms_label in labels_ms for mI_label in labels_mI
-    ]
-    if !isnothing(Λ)
-        labels = [
-            (N_label, ms_label, mI_label) for N_label in ["G", "E"] for
-            ms_label in labels_ms for mI_label in labels_mI
-        ]
-        labels = [labels..., ("S", "0", "↑"), ("S", "0", "↓")]
+    for value in (Γ, Γ₀, Γ₊₁, Γ₋₁, Σ₀, Σ₊₁, Σ₋₁, γ₊₁, γ₋₁)
+        @assert value ≥ 0.0 "Dissipation rates must be ≥ 0"
     end
 
-    NS = length(labels_ms)  # dimension of electronic spin subspace (G/E)
-    N = length(labels)  # total dimension of Hilbert space
+    use_full_optical_space = !isnothing(Λ)
+    has_dissipation = !isnothing(Λ) || (γ₋₁ > 0.0) || (γ₊₁ > 0.0)
 
-    function ket(N_label::String, ms_label::String, mI_label::String)
-        @assert N_label ∈ labels_N
-        @assert ms_label ∈ labels_ms
-        @assert mI_label ∈ labels_mI
-        index = findfirst(lt -> (lt == (N_label, ms_label, mI_label)), labels)
-        Ψ = zeros(ComplexF64, N)
-        Ψ[index] = one(ComplexF64)
-        return Ψ
+    B⃗ = B .* [sin(θ) * cos(ϕ), sin(θ) * sin(ϕ), cos(θ)]
+    B_x = B⃗[1]
+    B_y = B⃗[2]
+    B_z = B⃗[3]
+
+    N = length(hyperfine_tensors)  # number of carbons
+
+    labels_S = String["0"]
+    if !isnothing(Ω₊)
+        pushfirst!(labels_S, "+1")  #  before |0⟩
+    end
+    if !isnothing(Ω₋)
+        push!(labels_S, "-1")  # after |0⟩
     end
 
-    ket(ms_label, mI_label) = ket("G", ms_label, mI_label)
-
-    function bra(args...)
-        Ψ = ket(args...)
-        return Array(Ψ')
+    labels_OS = Tuple{String,Vararg{String}}[("G", label_S) for label_S in labels_S]
+    if use_full_optical_space
+        append!(labels_OS, [("E", label_S) for label_S in labels_S])
+        push!(labels_OS, ("M",))
     end
 
-    function _truncate(H)
-        @assert size(H) == (6, 6)
-        if isnothing(Ω₊)  # keep Ω₋
-            H = H[1:4, 1:4]
-        elseif isnothing(Ω₋)  # keep Ω₊
-            H = H[3:6, 3:6]
-        end
-        return H
-    end
-
-    H₀ = _truncate(
-        Float64[
-            (A_zz/2-B*γ_c/2+δ₋)       (A_zx/2)            0         0               0                   0
-            (A_zx/2)            (-A_zz/2+B*γ_c/2+δ₋)      0         0               0                   0
-            0                            0            (-B*γ_c/2)    0               0                   0
-            0                            0                0      (B*γ_c/2)          0                   0
-            0                            0                0         0       (-A_zz/2-B*γ_c/2+δ₊)      (-A_zx/2)
-            0                            0                0         0            (-A_zx/2)       (A_zz/2+B*γ_c/2+δ₊)
-        ]
+    labels_I_n = ["↑", "↓"]
+    labels_I = vec(
+        collect(join(reverse(t)) for t in Iterators.product(ntuple(_ -> labels_I_n, N)...))
     )
 
-    # shift due to chirp
-    H₁₋ = _truncate(
-        Float64[
-            -1 0  0  0  0  0
-            0 -1  0  0  0  0
-            0  0  0  0  0  0
-            0  0  0  0  0  0
-            0  0  0  0  0  0
-            0  0  0  0  0  0
-        ]
+    labels = [(label_OS..., label_I) for label_OS in labels_OS for label_I in labels_I]
+
+    # Trivial identities
+    𝟙_G = 1
+    𝟙_E = 1
+    𝟙_M = 1
+    𝟘_M = 0
+
+    # Operators for a single nuclear spin, ℋ_{I}^{(n)}
+
+    Î_x = 0.5 * ComplexF64[0 1; 1 0]
+    Î_y = 0.5 * ComplexF64[0 -1im; 1im 0]
+    Î_z = 0.5 * ComplexF64[1 0; 0 -1]
+
+    # Operators for electronic spin, ℋ_S
+
+    𝟙_S = Diagonal(ones(ComplexF64, length(labels_S)))
+    𝟘_S = Diagonal(zeros(ComplexF64, length(labels_S)))
+
+    # Using `strict = false` to make "truncation" easy (depending on the
+    # presence of Ω₊/Ω₋, see above)
+    Ŝ_z =
+        ketbra("+1", "+1", labels_S; strict = false) -
+        ketbra("-1", "-1", labels_S; strict = false)
+
+    # Operators for tensored nuclear spins, ℋ_I
+
+    𝟙_I = _n(Diagonal(ones(ComplexF64, length(labels_I_n))), 1, N)
+    @assert size(𝟙_I) == (length(labels_I), length(labels_I))
+    𝟘_I = _n(Diagonal(zeros(ComplexF64, length(labels_I_n))), 1, N)
+    @assert size(𝟘_I) == (length(labels_I), length(labels_I))
+    @assert norm(𝟘_I) == 0.0
+
+    # Drift Hamiltonian ∈ ℋ_S ⊗ ℋ_I
+
+    δ̂ = (
+        δ₊ * ketbra("+1", "+1", labels_S; strict = false) +
+        δ₋ * ketbra("-1", "-1", labels_S; strict = false)
     )
-
-    H₁₊ = _truncate(
-        Float64[
-            0  0  0  0  0  0
-            0  0  0  0  0  0
-            0  0  0  0  0  0
-            0  0  0  0  0  0
-            0  0  0  0 -1  0
-            0  0  0  0  0 -1
-        ]
-    )
-
-    # MW coupling
-    H₂₋ = _truncate(
-        Float64[
-            0     0   0.5   0   0   0
-            0     0    0   0.5  0   0
-            0.5   0    0    0   0   0
-            0    0.5   0    0   0   0
-            0     0    0    0   0   0
-            0     0    0    0   0   0
-        ]
-    )
-
-    H₂₊ = _truncate(
-        Float64[
-            0   0   0   0   0   0
-            0   0   0   0   0   0
-            0   0   0   0  0.5  0
-            0   0   0   0   0  0.5
-            0   0  0.5  0   0   0
-            0   0   0  0.5  0   0
-        ]
-    )
-
-    c_ops = Any[]
-
-    if isnothing(Λ) # ground-manifold only
-        parts = Any[H₀,]
-        if !isnothing(ω₋)
-            push!(parts, [H₁₋, ω₋])
-        end
-        if !isnothing(ω₊)
-            push!(parts, [H₁₊, ω₊])
-        end
-        if !isnothing(Ω₋)
-            push!(parts, [H₂₋, Ω₋])
-        end
-        if !isnothing(Ω₊)
-            push!(parts, [H₂₊, Ω₊])
-        end
-        H = hamiltonian(parts...)
-        # TODO: use_dissipation of electronic spin levels
-    else  # optical driving ⇒ include excited and metastable manifolds
-        @assert (2 * NS) == size(H₀, 1)
-        H₀ = H₀ ⊕ H₀ ⊕ ZeroMatrix(2)
-        H₁₋ = H₁₋ ⊕ ZeroMatrix(2 * NS) ⊕ ZeroMatrix(2)
-        H₁₊ = H₁₊ ⊕ ZeroMatrix(2 * NS) ⊕ ZeroMatrix(2)
-        H₂₋ = H₂₋ ⊕ ZeroMatrix(2 * NS) ⊕ ZeroMatrix(2)
-        H₂₊ = H₂₊ ⊕ ZeroMatrix(2 * NS) ⊕ ZeroMatrix(2)
-        parts = Any[H₀,]
-        if coherent_optical_drive
-            H_Λ = ((0.5 * [0 1; 1 0]) ⊗ IdMatrix(2 * NS)) ⊕ ZeroMatrix(2)
-            push!(parts, [H_Λ, Λ])
+    Ĥ_0 = δ̂ ⊗ 𝟙_I
+    for n = 1:N
+        B̂_I_n = B_x * _n(Î_x, n, N) + B_y * _n(Î_y, n, N) + B_z * _n(Î_z, n, N)
+        @assert norm(
+            # just to check that the math is consistent
+            B̂_I_n -
+            (B / 2) * _n(
+                [
+                                cos(θ)                   (sin(θ)*cos(ϕ)-𝕚*sin(θ)*sin(ϕ))
+                    (sin(θ)*cos(ϕ)+𝕚*sin(θ)*sin(ϕ))                        -cos(θ)
+                ],
+                n,
+                N
+            )
+        ) < 1e-14
+        Ĥ_0 = Ĥ_0 - γ_c * (𝟙_S ⊗ B̂_I_n)
+        A_zz = hyperfine_tensors[n][3, 3]
+        A_zx = hyperfine_tensors[n][3, 1]
+        A_zy = hyperfine_tensors[n][3, 2]
+        if frame == :rwa
+            Â_I_n = _n(0.5 * [
+                    (A_zz)    (A_zx-𝕚*A_zy)
+                (A_zx+𝕚*A_zy)     (-A_zz)
+            ], n, N)
+            Ĥ_0 = Ĥ_0 + Ŝ_z ⊗ Â_I_n
+        elseif frame == :diag
+            A_n = √(A_zz^2 + A_zx^2 + A_zy^2)
+            Ĥ_0 = Ĥ_0 + A_n * (Ŝ_z ⊗ _n(Î_z, n, N))
         else
-            # For an incoherent drive, we'll manually add a time-dependent
-            # excitation dissipator at the very end. This is because the
-            # `liouvillian` function does not support time-dependent `c_ops`
-        end
-        if !isnothing(ω₋)
-            push!(parts, [H₁₋, ω₋])
-        end
-        if !isnothing(ω₊)
-            push!(parts, [H₁₊, ω₊])
-        end
-        if !isnothing(Ω₋)
-            push!(parts, [H₂₋, Ω₋])
-        end
-        if !isnothing(Ω₊)
-            push!(parts, [H₂₊, Ω₊])
-        end
-        H = hamiltonian(parts...)
-        if Γ > 0.0
-            for ms in labels_ms
-                for mI in labels_mI
-                    push!(c_ops, √Γ * ket("G", ms, mI) * bra("E", ms, mI))
-                end
-            end
-        end
-        if Γ₀ > 0.0
-            for mI in labels_mI
-                push!(c_ops, √Γ₀ * ket("S", "0", mI) * bra("E", "0", mI))
-            end
-        end
-        if Γ₊₁ > 0.0
-            if !isnothing(Ω₊)
-                for mI in labels_mI
-                    push!(c_ops, √Γ₊₁ * ket("S", "0", mI) * bra("E", "+1", mI))
-                end
-            end
-        end
-        if Γ₋₁ > 0.0
-            if !isnothing(Ω₋)
-                for mI in labels_mI
-                    push!(c_ops, √Γ₋₁ * ket("S", "0", mI) * bra("E", "-1", mI))
-                end
-            end
-        end
-        if Σ₀ > 0.0
-            for mI in labels_mI
-                push!(c_ops, √Σ₀ * ket("G", "0", mI) * bra("S", "0", mI))
-            end
-        end
-        if Σ₊₁ > 0.0
-            if !isnothing(Ω₊)
-                for mI in labels_mI
-                    push!(c_ops, √Σ₊₁ * ket("G", "+1", mI) * bra("S", "0", mI))
-                end
-            end
-        end
-        if Σ₋₁ > 0.0
-            if !isnothing(Ω₋)
-                for mI in labels_mI
-                    push!(c_ops, √Σ₋₁ * ket("G", "-1", mI) * bra("S", "0", mI))
-                end
-            end
+            error("`frame` must be one of :rwa, :diag, not $repr(frame)")
         end
     end
 
-    if use_dissipation
-        L = liouvillian(H, c_ops; convention = :TDSE)
-        if (!coherent_optical_drive) && (Λ ≠ 0)
-            exc_ops = []
-            for ms in labels_ms
-                for mI in labels_mI
-                    push!(exc_ops, ket("E", ms, mI) * bra("G", ms, mI))
-                end
-            end
-            L_Λ = liouvillian(nothing, exc_ops; convention = :TDSE)
-            L = Generator([L.ops..., L_Λ], [L.amplitudes..., Λ])
+    # Control Hamiltonians ∈ ℋ_S ⊗ ℋ_I (to match Hilbert space of Ĥ_0)
+
+    Ĥ_ω₊ = -1.0 * ketbra("+1", "+1", labels_S; strict = false) ⊗ 𝟙_I
+    Ĥ_ω₋ = -1.0 * ketbra("-1", "-1", labels_S; strict = false) ⊗ 𝟙_I
+    Ĥ_Ω₊ =
+        (
+            0.5 * ketbra("+1", "0", labels_S; strict = false) +
+            0.5 * ketbra("0", "+1", labels_S; strict = false)
+        ) ⊗ 𝟙_I
+    Ĥ_Ω₋ =
+        (
+            0.5 * ketbra("-1", "0", labels_S; strict = false) +
+            0.5 * ketbra("0", "-1", labels_S; strict = false)
+        ) ⊗ 𝟙_I
+
+
+    if use_full_optical_space
+        padding = (𝟙_E ⊗ 𝟘_S ⊗ 𝟘_I) ⊕ (𝟙_M ⊗ 𝟘_I)
+        Ĥ_0 = (𝟙_G ⊗ Ĥ_0) ⊕ padding
+        Ĥ_ω₋ = (𝟙_G ⊗ Ĥ_ω₋) ⊕ padding
+        Ĥ_ω₊ = (𝟙_G ⊗ Ĥ_ω₊) ⊕ padding
+        Ĥ_Ω₋ = (𝟙_G ⊗ Ĥ_Ω₋) ⊕ padding
+        Ĥ_Ω₊ = (𝟙_G ⊗ Ĥ_Ω₊) ⊕ padding
+    end
+
+    parts = Any[Ĥ_0,]
+    if !isnothing(ω₋)
+        push!(parts, [Ĥ_ω₋, ω₋])
+    end
+    if !isnothing(ω₊)
+        push!(parts, [Ĥ_ω₊, ω₊])
+    end
+    if !isnothing(Ω₋)
+        push!(parts, [Ĥ_Ω₋, Ω₋])
+    end
+    if !isnothing(Ω₊)
+        push!(parts, [Ĥ_Ω₊, Ω₊])
+    end
+    H = hamiltonian(parts...)
+
+    if has_dissipation
+
+        c_ops = Any[]
+        if (Γ > 0) && use_full_optical_space
+            Â_Γ = √Γ * ketbra("G", "E", ["G", "E"]) ⊗ 𝟙_S ⊗ 𝟙_I ⊕ 𝟘_M ⊗ 𝟙_I
+            push!(c_ops, Â_Γ)
         end
-        return L, ket, labels
+        if (Γ₀ > 0) && use_full_optical_space
+            Â_Γ₀ = √Γ₀ * ketbra(("M",), ("E", "0"), labels_OS) ⊗ 𝟙_I
+            push!(c_ops, Â_Γ₀)
+        end
+        if (Γ₋₁ > 0) && use_full_optical_space && (!isnothing(Ω₋))
+            Â_Γ₋₁ = √Γ₋₁ * ketbra(("M",), ("E", "-1"), labels_OS) ⊗ 𝟙_I
+            push!(c_ops, Â_Γ₋₁)
+        end
+        if (Γ₊₁ > 0) && use_full_optical_space && (!isnothing(Ω₊))
+            Â_Γ₊₁ = √Γ₊₁ * ketbra(("M",), ("E", "+1"), labels_OS) ⊗ 𝟙_I
+            push!(c_ops, Â_Γ₊₁)
+        end
+        if (Σ₀ > 0) && use_full_optical_space
+            Â_Σ₀ = √Σ₀ * ketbra(("G", "0"), ("M",), labels_OS) ⊗ 𝟙_I
+            push!(c_ops, Â_Σ₀)
+        end
+        if (Σ₋₁ > 0) && use_full_optical_space && (!isnothing(Ω₋))
+            Â_Σ₋₁ = √Σ₋₁ * ketbra(("G", "-1"), ("M",), labels_OS) ⊗ 𝟙_I
+            push!(c_ops, Â_Σ₋₁)
+        end
+        if (Σ₊₁ > 0) && use_full_optical_space && (!isnothing(Ω₊))
+            Â_Σ₊₁ = √Σ₊₁ * ketbra(("G", "+1"), ("M",), labels_OS) ⊗ 𝟙_I
+            push!(c_ops, Â_Σ₊₁)
+        end
+        if (γ₊₁ > 0) && (!isnothing(Ω₊))
+            if use_full_optical_space
+                Â_γ₊₁ = √γ₊₁ * ketbra(("G", "0"), ("G", "+1"), labels_OS) ⊗ 𝟙_I
+            else
+                Â_γ₊₁ = √γ₊₁ * ketbra("0", "+1", labels_S) ⊗ 𝟙_I
+            end
+            push!(c_ops, Â_γ₊₁)
+        end
+        if (γ₋₁ > 0) && (!isnothing(Ω₋))
+            if use_full_optical_space
+                Â_γ₋₁ = √γ₋₁ * ketbra(("G", "0"), ("G", "-1"), labels_OS) ⊗ 𝟙_I
+            else
+                Â_γ₋₁ = √γ₋₁ * ketbra("0", "-1", labels_S) ⊗ 𝟙_I
+            end
+            push!(c_ops, Â_γ₋₁)
+        end
+
+        L = liouvillian(H, c_ops; convention = :TDSE)
+
+        # Add time-dependent dissipative drive
+
+        if !isnothing(Λ)
+            L_Λ = liouvillian(
+                nothing,
+                [ketbra("E", "G", ["G", "E"]) ⊗ 𝟙_S ⊗ 𝟙_I ⊕ 𝟘_M ⊗ 𝟙_I];
+                convention = :TDSE
+            )
+            if L isa Generator
+                L = Generator([L.ops..., L_Λ], [L.amplitudes..., Λ])
+            else
+                # The original `L` may not have been time-dependent
+                L = Generator([L, L_Λ], [Λ,])
+            end
+        end
+
+        return L, labels
+
     else
-        return H, ket, labels
+
+        return H, labels
+
     end
 
 end

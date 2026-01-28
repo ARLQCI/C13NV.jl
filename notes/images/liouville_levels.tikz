@@ -1,0 +1,69 @@
+\begin{tikzpicture}
+  \begingroup
+
+  \definecolor{red}{RGB}{192,0,0}
+  \definecolor{blue}{RGB}{3,110,189}
+  \definecolor{lasergreen}{RGB}{79, 172,91}
+  \definecolor{tcbcolback}{rgb}{1.0,1.0,1.0}
+
+  \tikzset{level/.style={black, very thick}}
+  \tikzset{laserline/.style={lasergreen, very thick, -{Latex[length=7pt]}}}
+  \tikzset{decayline/.style={red, very thick, {Latex[length=7pt]}-}}
+  \tikzset{spontdecayGamma/.style={black, dashed, -{Latex[length=7pt]}}}
+  \tikzset{spontdecaySigma/.style={black, dashed, {Latex[length=7pt]}-}}
+  \tikzset{spontdecayElectronic/.style={black, dashed, {Latex[length=7pt]}-}}
+  \tikzset{fglabel/.style={fill = tcbcolback, text opacity = 1, fill opacity = 0.8, inner sep = 0}}
+
+  \def\EPlus{1.1}  % separation between |0⟩ and |+1⟩
+  \def\EMinus{0.6}  % separation between |0⟩ and |-1⟩
+  \def\EExc{4.0} % separation between |G⟩ and |E⟩
+  \def\EM{2.6} % separation between |0G⟩ and |M⟩
+  \def\MainLevelWidth{0.8}  % length of levels |G⟩ and |E⟩
+  \def\MLevelWidth{0.8} % length of level |M⟩
+  \def\MHorizOffset{1.3}  % horizontal offset of level |M⟩
+  \def\SpontDecayAlpha{25}  % angle in degrees
+
+  \pgfmathsetmacro{\GammaPlusXOffset}{(\EExc + \EPlus - \EM) * tan(\SpontDecayAlpha)}
+  \pgfmathsetmacro{\GammaMinusXOffset}{(\EExc + \EMinus - \EM) * tan(\SpontDecayAlpha)}
+  \pgfmathsetmacro{\GammaZeroXOffset}{(\EExc - \EM) * tan(\SpontDecayAlpha)}
+  \pgfmathsetmacro{\gammaPlusXOffset}{\EPlus * tan(0.5*\SpontDecayAlpha)}
+  \pgfmathsetmacro{\gammaMinusXOffset}{\EMinus* tan(0.5*\SpontDecayAlpha)}
+
+  \pgfmathsetmacro{\SigmaPlusXOffset}{(\EM - \EPlus) * tan(\SpontDecayAlpha)}
+  \pgfmathsetmacro{\SigmaMinusXOffset}{(\EM - \EMinus) * tan(\SpontDecayAlpha)}
+  \pgfmathsetmacro{\SigmaZeroXOffset}{\EM * tan(\SpontDecayAlpha)}
+
+  \begin{scope}[xscale=3.0,yscale=1.2]
+
+    \draw[level] (0, \EExc + \EMinus) node[left] {$\ket{E,-1}$} -- +(\MainLevelWidth, 0);
+    \draw[level] (0, \EExc + \EPlus) node[left] {$\ket{E,+1}$} -- +(\MainLevelWidth, 0);
+    \draw[level] (0, \EExc) node[left] {$\ket{E,0}$} -- +(\MainLevelWidth, 0);
+    \draw[level] (\MHorizOffset, \EM) -- +(\MLevelWidth, 0) node[right] {$\ket{M}$} ;
+    \draw[level] (0, \EMinus) node[left] {$\ket{G,-1}$} -- +(\MainLevelWidth, 0);
+    \draw[level] (0, \EPlus) node[left] {$\ket{G,+1}$} -- +(\MainLevelWidth, 0);
+    \draw[level] (0, 0) node[left] {$\ket{G,0}$} -- +(\MainLevelWidth, 0);
+
+    \draw[laserline] (0.10, 0.0) -- node[left, midway]{$\Lambda$} +(0, \EExc);
+    \draw[laserline] (0.15, \EMinus) -- +(0, \EExc);
+    \draw[laserline] (0.20, \EPlus) -- +(0, \EExc);
+
+    \draw[decayline] (0.60, 0.0) -- node[left, midway]{$\Gamma$} +(0, \EExc);
+    \draw[decayline] (0.65, \EMinus) -- +(0, \EExc);
+    \draw[decayline] (0.70, \EPlus) -- +(0, \EExc);
+
+    \draw[spontdecayGamma] (\MainLevelWidth, \EExc + \EPlus) -- node[midway, right, fglabel]{\small $\Gamma_{+1}$} (\MainLevelWidth + \GammaPlusXOffset, \EM);
+    \draw[spontdecayGamma] (\MainLevelWidth, \EExc + \EMinus) -- node[midway, fglabel]{\small $\Gamma_{-1}$} (\MainLevelWidth + \GammaMinusXOffset, \EM);
+    \draw[spontdecayGamma] (\MainLevelWidth, \EExc) -- node[midway, left, fglabel]{\small $\Gamma_0$} (\MainLevelWidth + \GammaZeroXOffset, \EM);
+
+    \draw[spontdecaySigma] (\MainLevelWidth, \EPlus) -- node[pos=0.6, left, fglabel]{\small $\Sigma_{+1}$} (\MainLevelWidth + \SigmaPlusXOffset, \EM);
+    \draw[spontdecaySigma] (\MainLevelWidth, \EMinus) -- node[midway, fglabel]{\small $\Sigma_{-1}$} (\MainLevelWidth + \SigmaMinusXOffset, \EM);
+    \draw[spontdecaySigma] (\MainLevelWidth, 0) -- node[pos=0.45, right, fglabel]{\small $\Sigma_{0}$} (\MainLevelWidth + \SigmaZeroXOffset, \EM);
+
+    \draw[spontdecayElectronic] (0.15 * \MainLevelWidth, 0) -- node[pos=0.8, right, fglabel]{\small $\gamma_{+1}$} +(\gammaPlusXOffset, \EPlus);
+    \draw[spontdecayElectronic] (0.45 * \MainLevelWidth, 0) -- node[pos=0.7, left, fglabel]{\small $\gamma_{-1}$} +(\gammaMinusXOffset, \EMinus);
+
+  \end{scope}
+
+  \endgroup
+\end{tikzpicture}
+

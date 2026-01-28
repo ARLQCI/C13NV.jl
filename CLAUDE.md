@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-C13NV.jl is a Julia package for modeling nitrogen-vacancy (NV) centers in diamonds, focused on quantum control applications. It implements multi-level quantum systems with ground (G), excited (E), and metastable singlet (S) states, including nuclear spin coupling, magnetic field effects, and integration with the QuantumControl.jl ecosystem.
+C13NV.jl is a Julia package for modeling nitrogen-vacancy (NV) centers in diamonds, focused on quantum control applications. It implements multi-level quantum systems with ground (G), excited (E), and metastable singlet (M) states, including nuclear spin coupling, magnetic field effects, and integration with the QuantumControl.jl ecosystem.
+
+The physical model is detailed in notes/hamiltonian.qmd. There are example Jupyter notebooks (saved via Jupytext) in the `examples` subfolder
 
 ## Development Commands
 
@@ -18,28 +20,15 @@ C13NV.jl is a Julia package for modeling nitrogen-vacancy (NV) centers in diamon
 
 ### Testing
 
-- `julia --project=test -e 'using TestItemRunner; @run_package_tests'` - Run specific test files
 - Tests are organized per-file using TestItemRunner.jl framework
+- The entire test suite can be run using `make test`. This mode of test-running does not rely on the environment in the `test` subfolder to be initialized
+- In order to run individual tests, the environment in the `test` subfolder must be initialized first, with `make test/Manifest.toml`. If the `test/Manifest.toml` file does not exist, always run `make test/Manifest.toml`.
+- Assuming `test/Manifest.toml` exists, a quick way to run the tests in an individual file, e.g., `test/test_quantum_numbers.jl` is via `julia --project=test -e 'include("test/test_quantum_numbers.jl")'`
 
 ### Dependencies
 
 - Requires Julia 1.11+
 - Main dependencies: QuantumControl.jl, QuantumPropagators.jl
-
-## Architecture
-
-### Core Modules (`src/`)
-
-- **`models.jl`**: Contains `make_nv_system()` function that constructs quantum Hamiltonians, Liouvillians, and collapse operators for NV center systems
-- **`amplitudes.jl`**: Control field parameterizations (`LinearChirp`, `ConstantDrive`) compatible with QuantumControl.jl optimization
-- **`defaults.jl`**: Physical parameters for NV center systems
-- **`units.jl`**: Unit system (MHz, GHz, μs, Gauss, etc.)
-
-### Key Functions
-
-- `make_nv_system()`: Primary function in `models.jl` for constructing quantum system representations
-- State labeling uses tuples: `(N_label, ms_label, mI_label)` for readability
-- System supports both Hamiltonian (unitary) and Liouvillian (open system) evolution
 
 ### Physics Conventions
 
@@ -61,7 +50,6 @@ The project uses separate environments for different purposes:
 - **Documentation** (`docs/Project.toml`): Documentation building tools
 
 The `test` environment encompasses the `docs` environment. Run `make test/Manifest.toml` once to make sure the test environment is properly instantiated. Then, `julia --project=test -e …` can run Julia code. For example, to apply code formatting:
-
 
 	julia --project=test -e 'using JuliaFormatter; format(["src", "docs", "test"])'
 

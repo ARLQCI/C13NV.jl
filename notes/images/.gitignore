@@ -1,0 +1,17 @@
+levels.pdf
+liouville_levels.pdf
+*.runlog
+*.aux
+*.log
+*.toc
+*.blg
+*.out
+*.bak
+*.ilg
+*.snm
+*.nav
+*.table
+*.dvi
+*.fls
+*.bbl
+*~

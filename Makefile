@@ -1,8 +1,9 @@
-.PHONY: help devrepl test coverage htmlcoverage docs clean codestyle distclean
+.PHONY: help devrepl test coverage htmlcoverage docs clean codestyle distclean examples notes
 .DEFAULT_GOAL := help
 
 JULIA ?= julia
 PORT ?= 8000
+EXECUTE ?=
 
 define PRINT_HELP_JLSCRIPT
 rx = r"^([a-z0-9A-Z_-]+):.*?##[ ]+(.*)$$"
@@ -22,7 +23,7 @@ help:  ## show this help
 	@julia -e "$$PRINT_HELP_JLSCRIPT" < $(MAKEFILE_LIST)
 
 devrepl:  test/Manifest.toml ## Start an interactive REPL for testing and building documentation
-	$(JULIA) --project=test
+	$(JULIA) --project=test -e 'using Revise' -i
 
 test: ## Run the test suite
 	$(JULIA) --project=. -e 'import Pkg; Pkg.test(;coverage=false, julia_args=["--check-bounds=yes", "--compiled-modules=yes", "--depwarn=yes"], force_latest_compatible_version=false, allow_reresolve=true)'
@@ -37,6 +38,8 @@ docs: docs/Manifest.toml ## Build the documentation
 	$(JULIA) --project=docs docs/make.jl
 
 clean: ## Clean up build/doc/testing artifacts
+	make -C notes clean
+	make -C examples clean
 	rm -f *.jl.*.cov
 	rm -f *.jl.cov
 	rm -f *.jl.mem
@@ -46,7 +49,15 @@ clean: ## Clean up build/doc/testing artifacts
 codestyle: test/Manifest.toml ## Apply the codestyle to the entire project
 	$(JULIA) --project=test -e 'using JuliaFormatter; format(["src", "docs", "test"], verbose=true)'
 
+examples: ## Generate all `.ipynb` files in the `examples` subfolder (use `make EXECTUE=--execute examples` to execute the examples during the conversion)
+	make -C examples EXECUTE=$(EXECUTE) ipynb
+
+notes: ## Generate the documents in the `notes` subfolder
+	make -C notes pdf
+
 distclean: clean ## Restore to a clean checkout state
+	make -C notes distclean
+	make -C examples distclean
 	rm -f Manifest.toml
 	rm -f test/Manifest.toml
 	rm -f docs/Manifest.toml

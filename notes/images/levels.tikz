@@ -1,0 +1,94 @@
+\begin{tikzpicture}
+  \definecolor{red}{RGB}{192,0,0}
+  \definecolor{blue}{RGB}{3,110,189}
+  \definecolor{tcbcolback}{rgb}{1.0,1.0,1.0}
+  \tikzset{arrow/.style={-{Latex[length=9pt]}}}
+  \tikzset{doublearrow/.style={{Latex[length=12pt]}-{Latex[length=12pt]}}}
+  \tikzset{fglabel/.style={fill = tcbcolback, text opacity = 1, fill opacity = 0.8, inner sep = 0}}
+  \pgfdeclarelayer{bg}    % declare background layer
+  \pgfsetlayers{bg,main}  % set the order of the layers (main is the standard layer)
+  % \footnotesize
+  \begin{scope}[xscale=2.2,yscale=2.2]
+    % \draw[step=1cm,gray,very thin] (-3,-1) grid (3,3); \fill[black] (0,0) circle (3pt);  % grid
+    \def\SpinSep{0.05}  % B γ_c/2
+    \def\MinusSep{1.75}  % δ₋ - α₋ (t - t₋)
+    \def\PlusSep{2.0}  % δ₊ - α₊ (t - t₊)
+    \def\MinusX{-2}  % x position of "plus" block
+    \def\PlusX{1}  % x position of "minus" block
+    \def\ASep{0.5}  % A_zz / 2
+    %% Dashed levels %%%
+    % Zero-Sub-Manifold
+    \begin{pgfonlayer}{bg}
+      \draw[very thin] (-0.25, 0) -- (1.0, 0) node[right]{\small $0$};
+    \end{pgfonlayer}
+    % Minus-One-Sub-Manifold
+    \draw[very thin] (\MinusX + 1, \MinusSep) -- coordinate[at end] (AM) +(0.5, 0);  % anchor point for α chirp indicator
+    \draw[very thin] (\MinusX - 0.4, \MinusSep + \SpinSep) -- +(0.3, 0)  (\MinusX + 0.5, \MinusSep + \SpinSep) -- +(0.5, 0);
+    \draw[very thin] (\MinusX - 0.4, \MinusSep - \SpinSep) -- +(0.3, 0)  (\MinusX + 0.5, \MinusSep - \SpinSep) -- +(0.5, 0);
+    % Plus-One-Sub-Manifold
+    \draw[very thin] (\PlusX - 0.5, \PlusSep) coordinate (AP) -- +(0.5, 0);  % anchor point for α chirp indicator
+    \draw[very thin] (\PlusX, \PlusSep + \SpinSep) -- +(0.5, 0) (\PlusX + 1.1, \PlusSep + \SpinSep) -- +(0.3, 0);
+    \draw[very thin] (\PlusX, \PlusSep - \SpinSep) -- +(0.5, 0) (\PlusX + 1.1, \PlusSep - \SpinSep) -- +(0.3, 0);
+    %% Bγ_c labels %%%
+    \draw[thick] (-0.5, +\SpinSep) -- +(-0.35, 0.20);
+    \node[left] at (-0.5, 0) {\small $B \gamma_c$};
+    \draw[thick] (-0.5, -\SpinSep) -- +(-0.35, -0.20);
+    %
+    \draw[very thin] (\MinusX - 0.4, \MinusSep + \SpinSep) -- +(-0.35, 0.20);
+    \node[left] at (\MinusX - 0.4, \MinusSep) {\small $B \gamma_c$};
+    \draw[very thin] (\MinusX - 0.4, \MinusSep - \SpinSep) -- +(-0.35, -0.20);
+    %
+    \draw[very thin] (\PlusX + 1.4, \PlusSep + \SpinSep) -- +(0.35, 0.20);
+    \node[right] at (\PlusX + 1.4, \PlusSep) {\small $B \gamma_c$};
+    \draw[very thin] (\PlusX + 1.4, \PlusSep - \SpinSep) -- +(0.35, -0.20);
+    %% Energy Levels %%%
+    % Zero-Sub-Manifold
+    \draw[thick] (-0.5, -\SpinSep) -- +(1.0, 0) node[midway, below]{$\ket{0\uparrow}$};
+    \draw[thick] (-0.5, +\SpinSep) -- +(1.0, 0) node[midway, above]{$\ket{0\downarrow}$};
+    %% Minus-One-Sub-Manifold
+    \draw[thick] (\MinusX, \MinusSep + \SpinSep - \ASep) node[left]{$\ket{-1\downarrow}$} -- +(1.0, 0);
+    \draw[thick] (\MinusX, \MinusSep - \SpinSep + \ASep) node[left]{$\ket{-1\uparrow}$} -- +(1.0, 0);
+    %% Plus-One-Sub-Manifold
+    \draw[thick] (\PlusX, \PlusSep + \SpinSep + \ASep) -- +(1.0, 0) node[right]{$\ket{+1\downarrow}$};
+    \draw[thick] (\PlusX, \PlusSep - \SpinSep - \ASep) -- +(1.0, 0) node[right]{$\ket{+1\uparrow}$};
+    %%  Arrows %%%
+    \draw[arrow, very thick, white, shorten <= 1pt] (\MinusX + 0.4 + 0.25, \MinusSep + \SpinSep) -- +(0.0, -\ASep); % white shadow
+    \draw[arrow] (\MinusX + 0.4 + 0.25, \MinusSep + \SpinSep) -- node[baseline, pos=0.6, right=1pt, fglabel]{\small $A_{zz}/2$} +(0.0, -\ASep);
+    \draw[arrow, very thick, white, shorten <= 1pt] (\MinusX + 0.6 + 0.25, \MinusSep - \SpinSep) -- +(0.0, +\ASep);  % white shadow
+    \draw[arrow] (\MinusX + 0.6 + 0.25, \MinusSep - \SpinSep) -- node[baseline, pos=0.6, right=1pt, fglabel]{\small $A_{zz}/2$} +(0.0, +\ASep);
+    \draw[arrow] (\PlusX + 0.4 - 0.25, \PlusSep - \SpinSep) -- node[baseline, pos=0.5, left=1pt, fglabel]{\small $A_{zz}/2$} +(0.0, -\ASep);
+    \draw[arrow] (\PlusX + 0.6 - 0.25, \PlusSep + \SpinSep) -- node[baseline, pos=0.5, left=1pt, fglabel]{\small $A_{zz}/2$} +(0.0, +\ASep);
+    %%% Curved arrows %%%
+    \coordinate (MD) at ($(\MinusX + 0.2, \MinusSep + \SpinSep - \ASep)$);
+    \coordinate (MU) at ($(\MinusX + 0.2, \MinusSep - \SpinSep + \ASep)$);
+    \draw[-{Latex[length=9pt]}, bend left=45, shorten >=2pt, shorten <=2pt] (MD) to (MU);
+    \draw[-{Latex[length=9pt]}, bend left=45, shorten >=2pt, shorten <=2pt] (MU) to (MD);
+    \node at ($(\MinusX + 0.2, \MinusSep)$) {\small $A_{zx}$};
+    \coordinate (PD) at ($(\PlusX + 0.8, \PlusSep + \SpinSep + \ASep)$);
+    \coordinate (PU) at ($(\PlusX + 0.8, \PlusSep - \SpinSep - \ASep)$);
+    \draw[->, bend left=45, shorten >=2pt, shorten <=2pt] (PD) to (PU);
+    \draw[->, bend left=45, shorten >=2pt, shorten <=2pt] (PU) to (PD);
+    \node at ($(\PlusX + 0.8, \PlusSep)$) {\small $A_{zx}$};
+    %%% Chirp indicator %%%
+    \node at ($(AM) + (2pt, 0)$) [circle, inner sep=0pt, minimum size=6pt, fill=red] {};
+    \draw[doublearrow, red] (AM) ++(2pt, -0.5) -- node[midway, right = 10pt, rotate = 90, anchor = center]{\small $\delta_{-} -\alpha_{-}(t - t_{-})$} +(0, 1.0);
+    \node at ($(AP) + (-2pt, 0)$) [circle, inner sep=0pt, minimum size=6pt, fill=blue] {};
+    \draw[doublearrow, blue] (AP) ++(-2pt, -0.5) -- node[midway, left = 10pt, rotate = 90, anchor = center]{\small $\delta_{+} -\alpha_{+}(t - t_{+})$} +(0, 1.0);
+    %%% Drive %%%
+    \coordinate (LZU) at (-0.5, -\SpinSep);  % left-zero-up
+    \coordinate (LZD) at (-0.5, +\SpinSep);  % left-zero-down
+    \coordinate (RZU) at (0.5, -\SpinSep);  % right-zero-up
+    \coordinate (RZD) at (0.5, +\SpinSep);  % right-zero-down
+    \coordinate (RMU) at (\MinusX + 1, \MinusSep - \SpinSep + \ASep);  % right-minus-up
+    \coordinate (RMD) at (\MinusX + 1, \MinusSep + \SpinSep - \ASep);  % right-minus-down
+    \coordinate (LPU) at (\PlusX, \PlusSep - \SpinSep - \ASep);  % left-plus-up
+    \coordinate (LPD) at (\PlusX, \PlusSep + \SpinSep + \ASep);  % left-plus-down
+    \begin{pgfonlayer}{bg}
+      \draw[red, thick, opacity = 0.8] (LZU) -- (RMU);
+      \draw[red, thick, opacity = 0.8] (LZD) -- node[midway, left]{$\Omega_{-}$} (RMD);
+      \draw[blue, thick, opacity = 0.8] (RZU) -- node[midway, right]{$\Omega_{+}$} (LPU);
+      \draw[blue, thick, opacity = 0.8] (RZD) -- (LPD);
+    \end{pgfonlayer}
+
+  \end{scope}
+\end{tikzpicture}

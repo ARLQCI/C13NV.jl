@@ -28,39 +28,39 @@ end
 
     # Test different A_zz values while keeping A_zx constant
     A_zx_fixed = 0.3MHz
-    Ω₋_test = ConstantDrive(1.0kHz)  # Small amplitude to focus on hyperfine structure
+    Ω₊_test = ConstantDrive(1.0kHz)  # Small amplitude to focus on hyperfine structure
 
     # Test case 1: A_zz = 0 (no diagonal hyperfine coupling)
-    H1, ket1, labels1 = make_nv_system(;
+    H1, labels1 = make_nv_system(;
         A_zz = 0.0MHz,
         A_zx = A_zx_fixed,
-        Ω₋ = Ω₋_test,
+        Ω₊ = Ω₊_test,
         HyperfineCouplingTest.test_params...
     )
     H1_matrix = H1.ops[1]  # Get static Hamiltonian part
 
     # Test case 2: Default A_zz = 1.0MHz
-    H2, ket2, labels2 = make_nv_system(;
+    H2, labels2 = make_nv_system(;
         A_zz = 1.0MHz,
         A_zx = A_zx_fixed,
-        Ω₋ = Ω₋_test,
+        Ω₊ = Ω₊_test,
         HyperfineCouplingTest.test_params...
     )
     H2_matrix = H2.ops[1]
 
     # Test case 3: Large A_zz = 3.0MHz
-    H3, ket3, labels3 = make_nv_system(;
+    H3, labels3 = make_nv_system(;
         A_zz = 3.0MHz,
         A_zx = A_zx_fixed,
-        Ω₋ = Ω₋_test,
+        Ω₊ = Ω₊_test,
         HyperfineCouplingTest.test_params...
     )
     H3_matrix = H3.ops[1]
 
     # Verify that A_zz affects diagonal elements as expected
     # From the Hamiltonian matrix structure:
-    # H[1,1] = A_zz/2 - B*γ_c/2 + δ₋  (for |-1,↑⟩ state)
-    # H[2,2] = -A_zz/2 + B*γ_c/2 + δ₋ (for |-1,↓⟩ state)
+    # H[1,1] = A_zz/2 - B*γ_c/2 + δ₊  (for |+1,↑⟩ state)
+    # H[2,2] = -A_zz/2 + B*γ_c/2 + δ₊ (for |+1,↓⟩ state)
     # So H[1,1] - H[2,2] = A_zz - B*γ_c = A_zz - (120*1.07) = A_zz - 128.4kHz
 
     # The energy difference between spin-up and spin-down states should scale with A_zz
@@ -91,31 +91,31 @@ end
 
     # Test different A_zx values while keeping A_zz constant
     A_zz_fixed = 1.0MHz
-    Ω₋_test = ConstantDrive(1.0kHz)
+    Ω₊_test = ConstantDrive(1.0kHz)
 
     # Test case 1: A_zx = 0 (no off-diagonal hyperfine coupling)
-    H1, ket1, labels1 = make_nv_system(;
+    H1, labels1 = make_nv_system(;
         A_zz = A_zz_fixed,
         A_zx = 0.0MHz,
-        Ω₋ = Ω₋_test,
+        Ω₊ = Ω₊_test,
         HyperfineCouplingTest.test_params...
     )
     H1_matrix = H1.ops[1]
 
     # Test case 2: Default A_zx = 0.3MHz
-    H2, ket2, labels2 = make_nv_system(;
+    H2, labels2 = make_nv_system(;
         A_zz = A_zz_fixed,
         A_zx = 0.3MHz,
-        Ω₋ = Ω₋_test,
+        Ω₊ = Ω₊_test,
         HyperfineCouplingTest.test_params...
     )
     H2_matrix = H2.ops[1]
 
     # Test case 3: Large A_zx = 1.0MHz
-    H3, ket3, labels3 = make_nv_system(;
+    H3, labels3 = make_nv_system(;
         A_zz = A_zz_fixed,
         A_zx = 1.0MHz,
-        Ω₋ = Ω₋_test,
+        Ω₊ = Ω₊_test,
         HyperfineCouplingTest.test_params...
     )
     H3_matrix = H3.ops[1]
@@ -146,21 +146,21 @@ end
     using C13NV.Amplitudes: ConstantDrive
     using C13NV.Units: MHz, kHz
 
-    Ω₋_test = ConstantDrive(1.0kHz)
+    Ω₊_test = ConstantDrive(1.0kHz)
 
     # Test that A_zz and A_zx have independent effects
-    H_ref, _, _ = make_nv_system(;
+    H_ref, _ = make_nv_system(;
         A_zz = 1.0MHz,
         A_zx = 0.3MHz,
-        Ω₋ = Ω₋_test,
+        Ω₊ = Ω₊_test,
         HyperfineCouplingTest.test_params...
     )
     H_ref_matrix = H_ref.ops[1]
 
-    H_modified, _, _ = make_nv_system(;
+    H_modified, _ = make_nv_system(;
         A_zz = 2.0MHz,     # Changed from 1.0 to 2.0
         A_zx = 0.6MHz,     # Changed from 0.3 to 0.6
-        Ω₋ = Ω₋_test,
+        Ω₊ = Ω₊_test,
         HyperfineCouplingTest.test_params...
     )
     H_modified_matrix = H_modified.ops[1]
@@ -184,7 +184,7 @@ end
     using C13NV.Units: MHz, kHz
     using LinearAlgebra: eigvals, Hermitian, norm
 
-    Ω₋_test = ConstantDrive(1.0kHz)
+    Ω₊_test = ConstantDrive(1.0kHz)
 
     # Test that Hamiltonians are Hermitian for all parameter values
     test_params = [
@@ -195,10 +195,10 @@ end
     ]
 
     for params in test_params
-        H, _, _ = make_nv_system(;
+        H, _ = make_nv_system(;
             A_zz = params.A_zz,
             A_zx = params.A_zx,
-            Ω₋ = Ω₋_test,
+            Ω₊ = Ω₊_test,
             HyperfineCouplingTest.test_params...
         )
         H_matrix = H.ops[1]

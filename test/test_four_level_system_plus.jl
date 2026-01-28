@@ -6,10 +6,10 @@ using TestItems
     using C13NV.Units: MHz, kHz, ms
     using C13NV.Defaults: with_defaults
 
-    H, ket, labels = make_nv_system(;
-        Ω₋ = ConstantDrive(257kHz),
-        ω₋ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
-        with_defaults(δ₋ = 1.5MHz,)...
+    H, labels = make_nv_system(;
+        Ω₊ = ConstantDrive(257kHz),
+        ω₊ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
+        with_defaults(δ₊ = 1.5MHz,)...
     )
 end
 
@@ -25,7 +25,7 @@ end
     @test length(parameters) == 3
     @test norm(parameters - [1.0, 1.0, 1.0]) ≈ 0.0
     @test FourLevelSystemPlus.labels ==
-          [("G", "-1", "↑"), ("G", "-1", "↓"), ("G", "0", "↑"), ("G", "0", "↓"),]
+          [("G", "+1", "↑"), ("G", "+1", "↓"), ("G", "0", "↑"), ("G", "0", "↓"),]
 
 end
 

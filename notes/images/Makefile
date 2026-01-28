@@ -10,7 +10,7 @@ all: $(ALL)  ## Compile all files
 
 %.pdf: %.tex %.tikz
 	@echo "\n** generate figure: $< -> $@"
-	@pdflatex $(PDFLATEXOPTS) $<
+	@lualatex $(PDFLATEXOPTS) $<
 
 clean:
 	@rm -f *.runlog

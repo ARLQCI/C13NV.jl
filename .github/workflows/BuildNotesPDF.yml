@@ -1,0 +1,42 @@
+name: Build Notes PDF
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+jobs:
+  build-pdf:
+    name: Build Hamiltonian PDF
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          tinytex: true
+
+      - name: Set up TinyTeX PATH and install LaTeX packages
+        run: |
+          echo "$HOME/.TinyTeX/bin/x86_64-linux" >> "$GITHUB_PATH"
+          ~/".TinyTeX/bin/x86_64-linux/tlmgr" install standalone braket pgf luatex85
+
+      - name: Build TikZ images
+        working-directory: notes/images
+        run: |
+          lualatex -file-line-error -interaction=nonstopmode -halt-on-error levels.tex
+          lualatex -file-line-error -interaction=nonstopmode -halt-on-error liouville_levels.tex
+
+      - name: Render PDF
+        run: |
+          cd notes
+          quarto render hamiltonian.qmd --to pdf
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamiltonian-pdf
+          path: notes/hamiltonian.pdf

@@ -35,6 +35,14 @@ preview-pdf:  ## Open a preview of the pdf version
 preview-all:  ## Open a preview of the all output formas
 	quarto preview $(NAME).qmd
 
+hamiltonian.md: $(NAME).qmd qmd2documenter.lua
+	pandoc $(NAME).qmd \
+		--from markdown \
+		--to markdown \
+		--lua-filter=qmd2documenter.lua \
+		--wrap=none \
+		-o $@
+
 clean:  ## Delete compilation artifact files
 	make -C images clean
 	rm -f $(NAME).tex

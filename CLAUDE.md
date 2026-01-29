@@ -59,3 +59,5 @@ This code formatting MUST be run every time any `.jl` file is modified.
 Make sure to only use explicit imports in Julia code, and that there are no imported functions or constants that are not actually used.
 
 When adding a new dependency to any `Project.toml` file, run `make distclean`, and then `make test/Manifest.toml`, `make docs/Manifest.toml`, etc. to recreate manifest files as necessary.
+
+Never commit any changes or ask to commit. I will always create git commits manually.

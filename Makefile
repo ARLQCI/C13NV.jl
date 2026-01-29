@@ -1,4 +1,4 @@
-.PHONY: help devrepl test coverage htmlcoverage docs clean codestyle distclean examples notes
+.PHONY: help devrepl test coverage htmlcoverage docs clean codestyle distclean examples execute-examples notes
 .DEFAULT_GOAL := help
 
 JULIA ?= julia
@@ -51,6 +51,9 @@ codestyle: test/Manifest.toml ## Apply the codestyle to the entire project
 
 examples: ## Generate all `.ipynb` files in the `examples` subfolder (use `make EXECTUE=--execute examples` to execute the examples during the conversion)
 	make -C examples EXECUTE=$(EXECUTE) ipynb
+
+execute-examples: ## Equivalent to `make EXECTUE=--execute examples`
+	make -C examples EXECUTE=--execute ipynb
 
 notes: ## Generate the documents in the `notes` subfolder
 	make -C notes pdf

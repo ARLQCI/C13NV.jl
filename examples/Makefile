@@ -1,4 +1,4 @@
-.PHONY: help ipynb codestyle jupyter-lab distclean clean
+.PHONY: help ipynb execute-ipynb codestyle jupyter-lab distclean clean
 .DEFAULT_GOAL := help
 
 define PRINT_HELP_JLSCRIPT
@@ -23,7 +23,10 @@ NOTEBOOKFILES := $(patsubst %.jl, %.ipynb, $(JLFILES))
 help:  ## show this help
 	@julia -e "$$PRINT_HELP_JLSCRIPT" < $(MAKEFILE_LIST)
 
-ipynb: $(NOTEBOOKFILES) ## Generate all `.ipynb` files (use `make EXECTUE=--execute ipynb` to execute the examples during the conversion)
+ipynb: $(NOTEBOOKFILES) ## Generate all `.ipynb` files (use `make EXECUTE=--execute ipynb` to execute the examples during the conversion)
+
+execute-ipynb:  ## Equivalent to `make EXECUTE=--execute ipynb`
+	make EXECUTE=--execute ipynb
 
 codestyle: Manifest.toml ## Apply the codestyle to all `.jl` files
 	$(JULIA) --project=test -e 'using JuliaFormatter; format(["."], verbose=true)'

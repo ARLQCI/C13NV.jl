@@ -90,7 +90,7 @@ end
     tlist = collect(range(0, n_τ * τ_test; length = n_points))
 
     # Create system with only Γ active; Λ=0.0 enables optical space without pumping
-    L, labels = make_nv_system(; base_params..., Λ = 0.0, Γ = γ_test)
+    L, labels = make_nv_system(; base_params..., Λ = 0.0, Γ = γ_test, Ω₊ = (t -> 0.0))
 
     # Find E and G state indices (all spin states)
     E_indices = findall(l -> l[1] == "E", labels)

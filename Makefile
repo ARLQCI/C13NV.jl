@@ -2,6 +2,7 @@
 .DEFAULT_GOAL := help
 
 JULIA ?= julia
+DEVENV ?= test
 PORT ?= 8000
 EXECUTE ?=
 
@@ -23,7 +24,7 @@ help:  ## show this help
 	@julia -e "$$PRINT_HELP_JLSCRIPT" < $(MAKEFILE_LIST)
 
 devrepl:  test/Manifest.toml ## Start an interactive REPL for testing and building documentation
-	$(JULIA) --project=test -e 'using Revise' -i
+	$(JULIA) --project=$(DEVENV) -e 'using Revise' -i
 
 test: ## Run the test suite
 	$(JULIA) --project=. -e 'import Pkg; Pkg.test(;coverage=false, julia_args=["--check-bounds=yes", "--compiled-modules=yes", "--depwarn=yes"], force_latest_compatible_version=false, allow_reresolve=true)'

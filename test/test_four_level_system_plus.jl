@@ -4,12 +4,13 @@ using TestItems
     using C13NV.Models: make_nv_system
     using C13NV.Amplitudes: ConstantDrive, LinearChirp
     using C13NV.Units: MHz, kHz, ms
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
 
     H, labels = make_nv_system(;
+        DEFAULTS...,
         Ω₊ = ConstantDrive(257kHz),
         ω₊ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
-        with_defaults(δ₊ = 1.5MHz,)...
+        δ₊ = 1.5MHz,
     )
 end
 

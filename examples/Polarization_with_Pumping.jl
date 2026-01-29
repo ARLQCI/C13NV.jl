@@ -19,7 +19,7 @@
 # We reproduce here the dynamics for a "known good" single chirp pulse. The dynamics include optical pumping after he chirp concludes. This produced the results shown in the poster "Microwave Pulse Trains for Quantum Metrology with C13 in Diamond" presented by M. Goerz at the GRC "Quantum Control of Light and Matter" 2025 in Newport, RI. The only difference is the relabeling of $|+1⟩ \leftrightarrow |-1⟩$, due to the non-standard use of quantum numbers in the poster, which was corrected here.
 
 using C13NV.Models: make_nv_system, ket
-using C13NV.Defaults: with_defaults
+using C13NV.Defaults: DEFAULTS
 using C13NV.Units: kHz, MHz, ms, μs, ns, Gauss
 using C13NV.Amplitudes: ConstantDrive, LinearChirp
 using QuantumPropagators.Shapes: flattop
@@ -68,7 +68,7 @@ end
 Λ = SinglePump(Γ; pump_width = 0.4, ramp_width = 0.01)
 
 L, labels = make_nv_system(;
-    with_defaults()...,
+    DEFAULTS...,
     Ω₋ = ConstantDrive(17γcB_per_2π),
     ω₋ = LinearChirp(; t₀, α),
     Γ = (1 / (12ns)),
@@ -154,7 +154,7 @@ pops[:, end]
 
 # +
 L_diag, labels = make_nv_system(;
-    with_defaults()...,
+    DEFAULTS...,
     Ω₋ = ConstantDrive(17γcB_per_2π),
     ω₋ = LinearChirp(; t₀, α),
     Γ = (1 / (12ns)),

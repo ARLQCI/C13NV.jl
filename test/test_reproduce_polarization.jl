@@ -61,7 +61,7 @@ end
 
 @testitem "Polarization with optical pumping dynamics" setup = [PolarizationPumpingTest] begin
     using C13NV.Models: make_nv_system, ket
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using C13NV.Units: ns
     using C13NV.Amplitudes: ConstantDrive, LinearChirp
     using QuantumPropagators: propagate, Newton
@@ -72,7 +72,7 @@ end
     Λ = SinglePump(Γ; pump_width = 0.4, ramp_width = 0.01)
 
     L, labels = make_nv_system(;
-        with_defaults()...,
+        DEFAULTS...,
         Ω₋ = ConstantDrive(Ω₀),
         ω₋ = LinearChirp(; t₀, α),
         Γ = (1 / (12ns)),

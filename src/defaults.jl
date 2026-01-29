@@ -16,12 +16,13 @@ const Σ₀::Float64 = (1 / (219ns))
 const Σ₊₁::Float64 = (1 / (219ns))
 const Σ₋₁::Float64 = (1 / (219ns))
 
-
 """
-Combine keyword arguments with default values
+A dict of keyword arguments with default values.
 
-```julia
-kwargs = with_defaults(;
+Calling `make_nv_system(; DEFAULTS...) is equivalent to
+
+```
+make_nv_system(;
     A_zz = 1.0MHz,
     A_zx = 0.3MHz,
     B = 120Gauss,
@@ -38,26 +39,30 @@ kwargs = with_defaults(;
 )
 ```
 
-accepts the keyword arguments for numerical parameter (floating point values)
-in [`C13NV.Models.make_nv_system`](@ref) and assigns default parameters
-for any value not given.
+Note that it is possible to override default values by passing it again _after_
+the `DEFAULTS...`, e.g., `make_nv_system(; DEFAULTS..., A_zz = 1.5MHz)`
 """
+DEFAULTS = Dict{Symbol,Float64}(
+    :A_zz => A_zz,
+    :A_zx => A_zx,
+    :B => B,
+    :γ_c => γ_c,
+    :δ₋ => δ₋,
+    :δ₊ => δ₊,
+    :Γ => Γ,
+    :Γ₀ => Γ₀,
+    :Γ₊₁ => Γ₊₁,
+    :Γ₋₁ => Γ₋₁,
+    :Σ₀ => Σ₀,
+    :Σ₊₁ => Σ₊₁,
+    :Σ₋₁ => Σ₋₁,
+)
+
+
+# deprecated: from before I understood that you can override default keyword
+# arguments with, e.g., `make_nv_system(; DEFAULTS..., A_zz = 1.5MHz)`
 function with_defaults(; kwargs...)
-    result = Dict{Symbol,Float64}(
-        :A_zz => A_zz,
-        :A_zx => A_zx,
-        :B => B,
-        :γ_c => γ_c,
-        :δ₋ => δ₋,
-        :δ₊ => δ₊,
-        :Γ => Γ,
-        :Γ₀ => Γ₀,
-        :Γ₊₁ => Γ₊₁,
-        :Γ₋₁ => Γ₋₁,
-        :Σ₀ => Σ₀,
-        :Σ₊₁ => Σ₊₁,
-        :Σ₋₁ => Σ₋₁,
-    )
+    result = copy(DEFAULTS)
     for (k, v) in kwargs
         result[k] = v
     end

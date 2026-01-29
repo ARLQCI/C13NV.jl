@@ -7,11 +7,11 @@ using TestItems
 @testitem "Coherent |G⟩ manifold, no Ω, 1 spin" begin
 
     using C13NV.Models: make_nv_system, ket
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using C13NV.Units: ms
     using QuantumPropagators.Interfaces: check_generator
 
-    H, labels = make_nv_system(; with_defaults()...)
+    H, labels = make_nv_system(; DEFAULTS...)
 
     @test labels == [("G", "0", "↑"), ("G", "0", "↓"),]
     @test size(H) == (2, 2)
@@ -25,7 +25,7 @@ end
 @testitem "Coherent |G⟩ manifold, no Ω, 2 spin" begin
 
     using C13NV.Models: make_nv_system, ket
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using C13NV.Units: MHz, kHz, ms
     using QuantumPropagators.Interfaces: check_generator
 
@@ -41,7 +41,7 @@ end
         250kHz 250kHz  1.2MHz
     ]
 
-    H, labels = make_nv_system(; with_defaults()..., hyperfine_tensors = [A₁, A₂])
+    H, labels = make_nv_system(; DEFAULTS..., hyperfine_tensors = [A₁, A₂])
 
     @test labels == [("G", "0", "↑↑"), ("G", "0", "↑↓"), ("G", "0", "↓↑"), ("G", "0", "↓↓")]
     @test size(H) == (4, 4)
@@ -57,7 +57,7 @@ end
 @testitem "Coherent |G⟩ manifold, no Ω, 3 spin" begin
 
     using C13NV.Models: make_nv_system, ket
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using C13NV.Units: MHz, kHz, ms
     using QuantumPropagators.Interfaces: check_generator
 
@@ -79,7 +79,7 @@ end
         150kHz 250kHz  1.3MHz
     ]
 
-    H, labels = make_nv_system(; with_defaults()..., hyperfine_tensors = [A₁, A₂, A₃])
+    H, labels = make_nv_system(; DEFAULTS..., hyperfine_tensors = [A₁, A₂, A₃])
 
     @test labels == [
         ("G", "0", "↑↑↑"),
@@ -106,13 +106,13 @@ end
     using C13NV.Models: make_nv_system, ket
     using C13NV.Amplitudes: ConstantDrive, LinearChirp
     using C13NV.Units: MHz, kHz, ms
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using QuantumPropagators.Interfaces: check_generator
 
     H, labels = make_nv_system(;
+        DEFAULTS...,
         Ω₊ = ConstantDrive(257kHz),
         ω₊ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
-        with_defaults()...
     )
 
     @test labels == [("G", "+1", "↑"), ("G", "+1", "↓"), ("G", "0", "↑"), ("G", "0", "↓"),]
@@ -131,13 +131,13 @@ end
     using C13NV.Models: make_nv_system, ket
     using C13NV.Amplitudes: ConstantDrive, LinearChirp
     using C13NV.Units: MHz, kHz, ms
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using QuantumPropagators.Interfaces: check_generator
 
     H, labels = make_nv_system(;
         Ω₋ = ConstantDrive(257kHz),
         ω₋ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
-        with_defaults()...
+        DEFAULTS...
     )
 
     @test labels == [("G", "0", "↑"), ("G", "0", "↓"), ("G", "-1", "↑"), ("G", "-1", "↓"),]
@@ -155,15 +155,15 @@ end
     using C13NV.Models: make_nv_system, ket
     using C13NV.Amplitudes: ConstantDrive, LinearChirp
     using C13NV.Units: MHz, kHz, ms
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using QuantumPropagators.Interfaces: check_generator
 
     H, labels = make_nv_system(;
+        DEFAULTS...,
         Ω₋ = ConstantDrive(257kHz),
         ω₋ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
         Ω₊ = ConstantDrive(257kHz),
         ω₊ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
-        with_defaults()...
     )
 
     @test labels == [
@@ -189,7 +189,7 @@ end
     using C13NV.Models: make_nv_system, ket
     using C13NV.Amplitudes: ConstantDrive, LinearChirp
     using C13NV.Units: MHz, kHz, ms, ns
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using QuantumPropagators.Interfaces: check_generator
 
     A₁ = [
@@ -205,11 +205,11 @@ end
     ]
 
     L, labels = make_nv_system(;
+        DEFAULTS...,
         Ω₋ = ConstantDrive(257kHz),
         ω₋ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
         Ω₊ = ConstantDrive(257kHz),
         ω₊ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
-        with_defaults()...,
         hyperfine_tensors = [A₁, A₂],
         γ₊₁ = 1/400ns,
         γ₋₁ = 1/400ns,
@@ -243,11 +243,11 @@ end
 @testitem "Full manifold, no Ω, 1 spin, static Λ" begin
 
     using C13NV.Models: make_nv_system, ket
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using C13NV.Units: ms
     using QuantumPropagators.Interfaces: check_generator
 
-    L, labels = make_nv_system(; with_defaults()..., Λ = 1.0)
+    L, labels = make_nv_system(; DEFAULTS..., Λ = 1.0)
 
     @test labels == [
         ("G", "0", "↑"),
@@ -272,12 +272,12 @@ end
 
     using C13NV.Models: make_nv_system, ket
     using C13NV.Amplitudes: ConstantDrive, LinearChirp
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using C13NV.Units: MHz, kHz, ms
     using QuantumPropagators.Interfaces: check_generator
 
     L, labels = make_nv_system(;
-        with_defaults()...,
+        DEFAULTS...,
         Ω₊ = ConstantDrive(257kHz),
         ω₊ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
         Λ = 1.0,
@@ -311,7 +311,7 @@ end
 
     using C13NV.Models: make_nv_system, ket
     using C13NV.Amplitudes: ConstantDrive, LinearChirp
-    using C13NV.Defaults: with_defaults
+    using C13NV.Defaults: DEFAULTS
     using C13NV.Units: MHz, kHz, ms
     using QuantumPropagators.Shapes: flattop
     using QuantumPropagators.Interfaces: check_generator
@@ -334,7 +334,7 @@ end
     ]
 
     L, labels = make_nv_system(;
-        with_defaults()...,
+        DEFAULTS...,
         Ω₋ = ConstantDrive(257kHz),
         ω₋ = LinearChirp(t₀ = 0.1568ms, α = 26.24MHz / ms),
         Ω₊ = ConstantDrive(257kHz),

@@ -1,14 +1,14 @@
 # Generalized Hamiltonian for multiple ¹³C atoms around an NV center
 
-For the purpose of implementing a very general numerical model of the interaction of the nuclear spin of one or more ¹³C atoms with the electronic spin of a single NV center in diamond in a private `C13NV` Julia package, we extensively discuss the Hamiltonian and Liouvillian for the system in full generality. Within `C13NV`, the construction is encapsulated in a `make_nv_system` function, that receives various system parameters and returns a Hamiltonian or Liouvillian (a `QuantumPropagators.Generators.Generator` instance) along with a list of labels (each label a tuple of strings).
+For the purpose of implementing a very general numerical model of the interaction of the nuclear spin of one or more ¹³C atoms with the electronic spin of a single NV center in diamond in a private `C13NV` Julia package, we extensively discuss the Hamiltonian and Liouvillian for the system in full generality. Within `C13NV`, the construction is encapsulated in a `make_nv_system` function, that receives various system parameters and returns a Hamiltonian or Liouvillian (a `QuantumPropagators.Generators.Generator` instance) along with a list of labels (each label is a tuple of strings).
 
-We discuss first the high-level structure of the Hilbert space ([Structure of the Hilbert space](@ref)) and the Hamiltonian/Liouvillian ([Structure of the Hamiltonian and Liouvillian](@ref)) before deriving the operators in detail. [Lab Frame Hamiltonian for the Ground State Manifold](@ref) lists the lab frame Hamiltonian and defines the spin operators for the electronic and nuclear spins. [Microwave Field Rotating Wave Approximation](@ref) transforms the lab frame Hamiltonian into the rotating frame. This yields one possible Hamiltonian to use numerically (`frame = :rwa`). [Diagonalizing the Hyperfine Interaction](@ref) goes further by analytically diagonalizing the hyperfine interaction between the nuclear spin and the electronic spin of the NV center. This yields an alternative form the Hamiltonian (`frame = :diag`), which allows for a better understanding of avoided Landau-Zener crossings, discussed in [Mapping between Electronic and Nuclear Spins via Landau-Zener Crossings](@ref). Lastly, [Dissipators for the Excited and Metastable Manifolds](@ref) describes the Lindblad operators for the full dissipative model.
+We discuss first the high-level structure of the Hilbert space ([Structure of the Hilbert space](@ref)) and the Hamiltonian/Liouvillian ([Structure of the Hamiltonian and Liouvillian](@ref)) before deriving the operators in detail. [Lab Frame Hamiltonian for the Ground State Manifold](@ref) lists the lab frame Hamiltonian and defines the spin operators for the electronic and nuclear spins. [Microwave Field Rotating Wave Approximation](@ref) transforms the lab frame Hamiltonian into the rotating frame. This yields one possible Hamiltonian to use numerically (`frame = :rwa`). [Diagonalizing the Hyperfine Interaction](@ref) goes further by analytically diagonalizing the hyperfine interaction between the nuclear spin and the electronic spin of the NV center. This yields an alternative form of the Hamiltonian (`frame = :diag`), which allows for a better understanding of avoided Landau-Zener crossings, discussed in [Mapping between Electronic and Nuclear Spins via Landau-Zener Crossings](@ref). Lastly, [Dissipators for the Excited and Metastable Manifolds](@ref) describes the Lindblad operators for the full dissipative model.
 
 ## Structure of the Hilbert space
 
-- The optical Hilbert space is ``ℋ_O`` with levels ``|G⟩``, ``|E⟩``, ``|M⟩``. The Hilbert space may be truncated to ``|G⟩`` is the parameter `Λ` representing ``\Lambda(t)`` is passed as `nothing`. Note that `Λ = 0.0` is possible to force inclusion of all optical levels.
+- The optical Hilbert space is ``ℋ_O`` with levels ``|G⟩``, ``|E⟩``, ``|M⟩``. The Hilbert space may be truncated to ``|G⟩`` if the parameter `Λ` representing ``\Lambda(t)`` is passed as `nothing`. Note that `Λ = 0.0` is possible to force inclusion of all optical levels.
 - The Hilbert space of the NV center electronic spin is ``ℋ_S`` with levels ``|+1⟩``, ``|0⟩``, ``|-1⟩``. The ``|-1⟩`` level is truncated if the `Ω₋` parameter representing ``\Omega_{-}(t)`` is given as `nothing`, and likewise for ``|+1⟩`` and `Ω₊`. Either `Ω₊` or `Ω₋` can be passed as `0.0` to force inclusion of the level.
-- The nuclear spin of each surrounding C13 is a TLS with Hilbert space ``ℋ_I^{(n)}`` spanned by the states ``|↑⟩``, ``|↓⟩``. These get tensored into a ``2^N``-dimensional spin space ``ℋ_I = ℋ_I^{(1)} \otimes \dots \otimes ℋ_I^{(N)}``; for ``N=2``: ``|↑↑⟩``, ``|↑↓⟩``, ``|↓↑⟩``, ``|↓↓⟩`` etc. for larger ``N``.
+- The nuclear spin of each surrounding C13 is a TLS with Hilbert space ``ℋ_I^{(n)}`` spanned by the states ``|↑⟩``, ``|↓⟩``. These get tensored into a ``2^N``-dimensional spin space ``ℋ_I = ℋ_I^{(1)} \otimes \dots \otimes ℋ_I^{(N)}``; for ``N=2``: ``|↑↑⟩``, ``|↑↓⟩``, ``|↓↑⟩``, ``|↓↓⟩``, etc., for larger ``N``.
 
 The structure of the full Hilbert space is a little bit tricky, since the meta-stable state ``|M⟩`` does not distinguish between different electronic-spin degrees of freedom, and thus the three Hilbert spaces are not simply tensored. Instead,
 
@@ -25,9 +25,7 @@ The structure of the full Hilbert space is a little bit tricky, since the meta-s
 \end{equation}
 ```
 
-where ``ℐ_G``, ``ℐ_E``, and ``ℐ_M`` are the (trivial) one-dimensional Hilbert spaces consisting only of the optical levels ``|G⟩``, ``|E⟩``, and ``|M⟩``, respectively. ``ℋ_S`` is the Hilbert space of the electronic spin, spanned by the three levels ``|+1⟩``, ``|0⟩``, ``|-1⟩`` (or a truncation thereof). We may define
-``ℋ_{OS} = ((ℐ_G \oplus ℐ_E) \otimes \, ℋ_S \, \oplus \, ℐ_M)`` in the third line of Equation ``\eqref{eq-Hilbert-space-structure}`` as the combined Hilbert space for the optical and electronic-spin degree of freedom, with the basis ``|G,+1⟩``, ``|G,0⟩``, ``|G,-1⟩``, ``|E,+1⟩``, ``|E,0⟩``, ``|E,-1⟩``, ``|M⟩``. The structure in lines 2 and 3 of Equation ``\eqref{eq-Hilbert-space-structure}`` is particularly helpful for constructing the relevant Lindblad operators in the full (optical) system.
-
+where ``ℐ_G``, ``ℐ_E``, and ``ℐ_M`` are the (trivial) one-dimensional Hilbert spaces consisting only of the optical levels ``|G⟩``, ``|E⟩``, and ``|M⟩``, respectively. ``ℋ_S`` is the Hilbert space of the electronic spin, spanned by the three levels ``|+1⟩``, ``|0⟩``, ``|-1⟩`` (or a truncation thereof). We may define ``ℋ_{OS} = ((ℐ_G \oplus ℐ_E) \otimes \, ℋ_S \, \oplus \, ℐ_M)`` in the third line of Equation ``\eqref{eq-Hilbert-space-structure}`` as the combined Hilbert space for the optical and electronic-spin degree of freedom, with the basis ``|G,+1⟩``, ``|G,0⟩``, ``|G,-1⟩``, ``|E,+1⟩``, ``|E,0⟩``, ``|E,-1⟩``, ``|M⟩``. The structure in lines 2 and 3 of Equation ``\eqref{eq-Hilbert-space-structure}`` is particularly helpful for constructing the relevant Lindblad operators in the full (optical) system.
 
 ## Structure of the Hamiltonian and Liouvillian
 
@@ -43,7 +41,7 @@ The transitions in the electronic spin states of the NV center ``|+1⟩``, ``|0�
 \end{equation}
 ```
 
-where the factor ``\frac{1}{\sqrt{2}}`` is to compensate the normalization factor in the ``\hat{S}_x`` operator, see below in [Lab Frame Hamiltonian for the Ground State Manifold](@ref). In a two-color rotating frame for the central frequencies ``\omega_{\pm}``, this results in four independent control fields:
+where the factor ``\frac{1}{\sqrt{2}}`` is to compensate for the normalization factor in the ``\hat{S}_x`` operator, see below in [Lab Frame Hamiltonian for the Ground State Manifold](@ref). In a two-color rotating frame for the central frequencies ``\omega_{\pm}``, this results in four independent control fields:
 
 1.  ``\omega_{-}(t) \equiv \frac{d\phi_{-}(t)}{dt}``, the deviation (dynamic shift) from the central frequency ``\omega_{-}``. Note that we use both the time-dependent ``\omega_{-}(t)`` and the time-independent ``\omega_{-}`` with different meanings.
 2.  ``\omega_{+}(t) \equiv \frac{d\phi_{+}(t)}{dt}``, the deviation (dynamic shift) from the central frequency ``\omega_{+}``
@@ -92,7 +90,7 @@ We are considering here the Hamiltonian of a single electronic spin described in
 \end{equation}
 ```
 
-with ``\Omega(t)`` given by Equation ``\eqref{eq-combined-mw-field}``, the electronic spin energy ``D \approx`` 3 GHz, the electron gyromagnetic ratio ``\gamma_e =`` 2.8 MHz/G, the nuclear gyromagnetic ratio ``\gamma_c =`` 1.07 kHz/G, and the hyperfine tensor ``A^{(n)}`` mediating the interaction between the n-th carbon nuclear spin and the electronic spin of the NV center. The spin operators for the electronic spin are those for a spin-1 particle, with quantum numbers ``(+1, 0, -1)``, cf. the ``\hat{S}_z`` operator:
+with ``\Omega(t)`` given by Equation ``\eqref{eq-combined-mw-field}``, the electronic spin energy ``D \approx`` 3 GHz, the electron gyromagnetic ratio ``\gamma_e =`` 2.8 MHz/G, the nuclear gyromagnetic ratio ``\gamma_c =`` 1.07 kHz/G, and the hyperfine tensor ``A^{(n)}`` mediating the interaction between the n-th carbon nuclear spin and the electronic spin of the NV center. The spin operators for the electronic spin are those for a spin-1 particle, with quantum numbers ``(+1, 0, -1)``, cf. the ``\hat{S}_z`` operator:
 
 ```math
 
@@ -119,7 +117,7 @@ with ``\Omega(t)`` given by Equation ``\eqref{eq-combined-mw-field}``, the elec
 
 ```
 
-If were are only going to drive one of the ``-1 \leftrightarrow 0`` or ``0 \leftrightarrow +1`` transitions, we can simply truncate the Hilbert space by cutting the above matrices to from ``3 \times 3`` to ``2 \times 2``.
+If we are only going to drive one of the ``-1 \leftrightarrow 0`` or ``0 \leftrightarrow +1`` transitions, we can simply truncate the Hilbert space by cutting the above matrices from ``3 \times 3`` to ``2 \times 2``.
 
 The nuclear spin is spin-``\frac{1}{2}``, and thus,
 
@@ -189,7 +187,7 @@ in the electronic spin subspace. The wave function in the rotating frame is defi
 \end{equation}
 ```
 
-We again have the implicit tensor product, i.e. in the full Hilbert space, Equation ``\eqref{eq-H-RWA-general}`` is more properly written with  ``\hat{U}_{\text{RWA}} \rightarrow \hat{U}_{\text{RWA}} \otimes 𝟙_I``. It is helpful to explicitly consider the transformation in the electronic-spin-subspace within this tensor structure. For the first term in Equation ``\eqref{eq-H-RWA-general}``,
+We again have the implicit tensor product, i.e., in the full Hilbert space, Equation ``\eqref{eq-H-RWA-general}`` is more properly written with ``\hat{U}_{\text{RWA}} \rightarrow \hat{U}_{\text{RWA}} \otimes 𝟙_I``. It is helpful to explicitly consider the transformation in the electronic-spin-subspace within this tensor structure. For the first term in Equation ``\eqref{eq-H-RWA-general}``,
 
 ```math
 \begin{equation}\label{eq-RWA-term1}
@@ -335,10 +333,10 @@ For the nested-list format in Equation ``\eqref{eq-nested-list}``, this means
 
 \begin{split}
 \hat{H}_{0, \text{RWA}} & = \hat{\delta} \otimes 𝟙_I + \sum_{n=1}^{N} \left(\hat{S}_z \otimes \hat{A}_I^{(n)} - \gamma_c 𝟙_S \otimes \hat{B}_I^{(n)} \right) \\
-\hat{H}_{\omega_{-}, \text{RWA}} & = -|-1⟩\!\bra{-1} \; \otimes \; 𝟙_I \\
-\hat{H}_{\omega_{+}, \text{RWA}} & = -|+1⟩\!\bra{+1} \; \otimes \; 𝟙_I \\
-\hat{H}_{\Omega_{-}, \text{RWA}} & = \frac{1}{2} \left( |0⟩\!\bra{-1} + |-1⟩\!\bra{0} \right) \otimes 𝟙_I \\
-\hat{H}_{\Omega_{+}, \text{RWA}} & = \frac{1}{2} \left( |0⟩\!\bra{+1} + |+1⟩\!\bra{0} \right) \otimes 𝟙_I
+\hat{H}_{\omega_{-}, \text{RWA}} & = -|-1⟩⟨-1| \; \otimes \; 𝟙_I \\
+\hat{H}_{\omega_{+}, \text{RWA}} & = -|+1⟩⟨+1| \; \otimes \; 𝟙_I \\
+\hat{H}_{\Omega_{-}, \text{RWA}} & = \frac{1}{2} \left( |0⟩⟨-1| + |-1⟩⟨0| \right) \otimes 𝟙_I \\
+\hat{H}_{\Omega_{+}, \text{RWA}} & = \frac{1}{2} \left( |0⟩⟨+1| + |+1⟩⟨0| \right) \otimes 𝟙_I
 \end{split}
 
 \end{equation}
@@ -362,8 +360,7 @@ The energy levels are depicted in the figure above, for the special case of a li
 
 a single carbon atom in the z-x plane (``A_{zy} = 0``) and the ``B`` field aligned to the ``z`` axis (``\theta = \phi = 0`` in Equation ``\eqref{eq-magnetic-field-vector}``).
 
-In explicit matrix form, the Hamiltonian for this special case in
-the subspace including the electronic spin ``0`` and the ``+1`` subspace is [AjoySA2018_Hamiltonian.jl](@cite)
+In explicit matrix form, the Hamiltonian for this special case in the subspace including the electronic spin ``0`` and the ``+1`` subspace is [AjoySA2018_Hamiltonian.jl](@cite)
 
 ```math
 \begin{equation}\label{eq-hamiltonian-rwa-matrix-plus}
@@ -393,8 +390,7 @@ and, in the subspace with electronic spin ``0`` and ``-1``,
 \end{equation}
 ```
 
-Note the  off-resonant Rabi-cycling in the ``\ket{\pm 1}`` manifolds, cf. also Equation ``\eqref{eq-A-I-matrix}``.
-
+Note the off-resonant Rabi-cycling in the ``|± 1⟩`` manifolds, cf. also Equation ``\eqref{eq-A-I-matrix}``.
 
 ## Diagonalizing the Hyperfine Interaction
 
@@ -550,7 +546,7 @@ with the ``A`` given in Equation ``\eqref{eq-A}``.
 
 TODO
 
-After a Landau-Zener transition the probability of population transfer is [LandauZener.jl](@cite)
+After a Landau-Zener transition, the probability of population transfer is [LandauZener.jl](@cite)
 
 ```math
 \begin{equation}\label{eq-lz-probability}
@@ -568,10 +564,10 @@ The optical laser field ``\Lambda(t)`` enables incoherent transitions between th
 
 The dynamics are described by a master equation in Lindblad form with the following Lindblad operators:
 
-* ``\hat{A}_{\Lambda} = \sqrt{\Lambda(t)} |E⟩\!\bra{G} \otimes 𝟙_S \otimes 𝟙_I \,\oplus\, 𝟘_M \otimes 𝟙_I``
-* ``\hat{A}_{\Gamma} = \sqrt{\Gamma}|G⟩\!\bra{E} \otimes 𝟙_S \otimes 𝟙_I \,\oplus\, 𝟘_M \otimes 𝟙_I``
+- ``\hat{A}_{\Lambda} = \sqrt{\Lambda(t)} |E⟩⟨G| \otimes 𝟙_S \otimes 𝟙_I \, \oplus\, 𝟘_M \otimes 𝟙_I``
+- ``\hat{A}_{\Gamma} = \sqrt{\Gamma}|G⟩⟨E| \otimes 𝟙_S \otimes 𝟙_I \, \oplus\, 𝟘_M \otimes 𝟙_I``
 
-where ``|E⟩\!\bra{G}`` and ``|G⟩\!\bra{E}`` are operators in the two-dimensional Hilbert space ``ℐ_G \oplus ℐ_E``, cf. the second line in Equation ``\eqref{eq-Hilbert-space-structure}``. The first of the two Lindblad operators above describes the somewhat unusual _incoherent_ excitation of the ``|E⟩`` manifold. The time-dependent ``\Lambda(t)`` is not directly supported by the `QuantumControl.liouvillian` function. Instead, we construct a super-operator [Goerz1312.0111v2](@cite)
+where ``|E⟩⟨G|`` and ``|G⟩⟨E|`` are operators in the two-dimensional Hilbert space ``ℐ_G \oplus ℐ_E``, cf. the second line in Equation ``\eqref{eq-Hilbert-space-structure}``. The first of the two Lindblad operators above describes the somewhat unusual _incoherent_ excitation of the ``|E⟩`` manifold. The time-dependent ``\Lambda(t)`` is not directly supported by the `QuantumControl.liouvillian` function. Instead, we construct a super-operator [Goerz1312.0111v2](@cite)
 
 ```math
 \begin{equation}\label{eq-dissipation-superop}
@@ -581,15 +577,20 @@ L = (\hat{A}^\dagger)^T \otimes \hat{A} - \frac{1}{2} \left(𝟙 \otimes \hat{A}
 
 with ``\hat{A}`` the operator ``\hat{A}_{\Lambda}`` for ``\sqrt{\Lambda(t)} = 1`` (i.e., without the rate factor). This is done by calling the `QuantumControl.liouvillian` function with `nothing` as the Hamiltonian and ``\hat{A}`` as the only element in `c_ops`. The resulting ``L`` is then added with a drive ``\Lambda(t)`` to the Liouvillian super-operator initialized automatically via the `QuantumControl.liouvillian` function from the coherent Hamiltonian previously constructed, the dissipator ``\hat{A}_{\Gamma}``, and the following further dissipators:
 
-* ``\hat{A}_{\Gamma_{0}} = \sqrt{\Gamma_{0}}|M⟩\!\bra{E,0} \otimes 𝟙_I``
-* ``\hat{A}_{\Gamma_{-1}} = \sqrt{\Gamma_{-1}}|M⟩\!\bra{E,-1} \otimes 𝟙_I``
-* ``\hat{A}_{\Gamma_{+1}} = \sqrt{\Gamma_{+1}}|M⟩\!\bra{E,+1} \otimes 𝟙_I``
+- ``\hat{A}_{\Gamma_{0}} = \sqrt{\Gamma_{0}}|M⟩⟨E,0| \otimes 𝟙_I``
 
-* ``\hat{A}_{\Sigma_{0}} = \sqrt{\Sigma_{0}}|G,0⟩\!\bra{M} \otimes 𝟙_I``
-* ``\hat{A}_{\Sigma_{-1}} = \sqrt{\Sigma_{-1}}|G,-1⟩\!\bra{M} \otimes 𝟙_I``
-* ``\hat{A}_{\Sigma_{+1}} = \sqrt{\Sigma_{+1}}|G,+1⟩\!\bra{M} \otimes 𝟙_I``
+- ``\hat{A}_{\Gamma_{-1}} = \sqrt{\Gamma_{-1}}|M⟩⟨E,-1| \otimes 𝟙_I``
 
-* ``\hat{A}_{\gamma_{+1}} = \sqrt{\gamma_{+1}}|G,0⟩\!\bra{G,+1} \otimes 𝟙_I``
-* ``\hat{A}_{\gamma_{-1}} = \sqrt{\gamma_{-1}}|G,0⟩\!\bra{G,-1} \otimes 𝟙_I``
+- ``\hat{A}_{\Gamma_{+1}} = \sqrt{\Gamma_{+1}}|M⟩⟨E,+1| \otimes 𝟙_I``
+
+- ``\hat{A}_{\Sigma_{0}} = \sqrt{\Sigma_{0}}|G,0⟩⟨M| \otimes 𝟙_I``
+
+- ``\hat{A}_{\Sigma_{-1}} = \sqrt{\Sigma_{-1}}|G,-1⟩⟨M| \otimes 𝟙_I``
+
+- ``\hat{A}_{\Sigma_{+1}} = \sqrt{\Sigma_{+1}}|G,+1⟩⟨M| \otimes 𝟙_I``
+
+- ``\hat{A}_{\gamma_{+1}} = \sqrt{\gamma_{+1}}|G,0⟩⟨G,+1| \otimes 𝟙_I``
+
+- ``\hat{A}_{\gamma_{-1}} = \sqrt{\gamma_{-1}}|G,0⟩⟨G,-1| \otimes 𝟙_I``
 
 The last two operators are under the assumption that spontaneous decay of the electronic spin occurs only in the ``|G⟩`` manifold, as indicated in the level scheme figure above; if that decay also occurred in the ``|E⟩`` manifold, the corresponding terms ``|E,0⟩\!\bra{E,\pm1}`` would have to be added to ``\hat{A}_{\gamma_{\pm1}}``. All of the above decay operators follow the structure of the third line in Equation ``\eqref{eq-Hilbert-space-structure}``.

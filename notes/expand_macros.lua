@@ -9,6 +9,7 @@ local macro0_replacements = {
     {macroname = "HilbertI", replace = "\\mathcal{H}_{\\!I}"},
     {macroname = "HilbertGE", replace = "\\mathcal{H}_{\\!GE}"},
     {macroname = "HilbertOS", replace = "\\mathcal{H}_{\\!OS}"},
+    {macroname = "HilbertO", replace = "\\mathcal{H}_{\\!O}"},
     {macroname = "HilbertM", replace = "\\mathcal{I}_{\\!M}"},
     {macroname = "HilbertG", replace = "\\mathcal{I}_{\\!G}"},
     {macroname = "HilbertE", replace = "\\mathcal{I}_{\\!E}"},

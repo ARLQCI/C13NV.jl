@@ -45,6 +45,7 @@ hamiltonian.md: $(NAME).qmd qmd2documenter.lua
 
 clean:  ## Delete compilation artifact files
 	make -C images clean
+	rm -f $(NAME).md
 	rm -f $(NAME).tex
 	rm -f $(NAME).html
 	rm -rf $(NAME)_files

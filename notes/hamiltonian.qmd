@@ -48,17 +48,17 @@ format:
         - expand_macros.lua
 ---
 
-For the purpose of implementing a very general numerical model of the interaction of the nuclear spin of one or more ¹³C atoms with the electronic spin of a single NV center in diamond in a private `C13NV` Julia package, we extensively discuss the Hamiltonian and Liouvillian for the system in full generality. Within `C13NV`, the construction is encapsulated in a `make_nv_system` function, that receives various system parameters and returns a Hamiltonian or Liouvillian (a `QuantumPropagators.Generators.Generator` instance) along with a list of labels (each label a tuple of strings).
+For the purpose of implementing a very general numerical model of the interaction of the nuclear spin of one or more ¹³C atoms with the electronic spin of a single NV center in diamond in a private `C13NV` Julia package, we extensively discuss the Hamiltonian and Liouvillian for the system in full generality. Within `C13NV`, the construction is encapsulated in a `make_nv_system` function, that receives various system parameters and returns a Hamiltonian or Liouvillian (a `QuantumPropagators.Generators.Generator` instance) along with a list of labels (each label is a tuple of strings).
 
-We discuss first the high-level structure of the Hilbert space (@sec-hilbert-structure) and the Hamiltonian/Liouvillian (@sec-hamiltonian-structure) before deriving the operators in detail. @sec-lab lists the lab frame Hamiltonian and defines the spin operators for the electronic and nuclear spins. @sec-rwa transforms the lab frame Hamiltonian into the rotating frame. This yields one possible Hamiltonian to use numerically (`frame = :rwa`). @sec-diag goes further by analytically diagonalizing the hyperfine interaction between the nuclear spin and the electronic spin of the NV center. This yields an alternative form the Hamiltonian (`frame = :diag`), which allows for a better understanding of avoided Landau-Zener crossings, discussed in @sec-lz. Lastly, @sec-dissipation describes the Lindblad operators for the full dissipative model.
+We discuss first the high-level structure of the Hilbert space (@sec-hilbert-structure) and the Hamiltonian/Liouvillian (@sec-hamiltonian-structure) before deriving the operators in detail. @sec-lab lists the lab frame Hamiltonian and defines the spin operators for the electronic and nuclear spins. @sec-rwa transforms the lab frame Hamiltonian into the rotating frame. This yields one possible Hamiltonian to use numerically (`frame = :rwa`). @sec-diag goes further by analytically diagonalizing the hyperfine interaction between the nuclear spin and the electronic spin of the NV center. This yields an alternative form of the Hamiltonian (`frame = :diag`), which allows for a better understanding of avoided Landau-Zener crossings, discussed in @sec-lz. Lastly, @sec-dissipation describes the Lindblad operators for the full dissipative model.
 
 
 ## Structure of the Hilbert space {#sec-hilbert-structure}
 
-* The optical Hilbert space is $\HilbertO$ with levels $\ket{G}$, $\ket{E}$, $\ket{M}$. The Hilbert space may be truncated to $\ket{G}$ is the parameter `Λ` representing $\Lambda(t)$ is passed as `nothing`. Note that `Λ = 0.0` is possible to force inclusion of all optical levels.
+* The optical Hilbert space is $\HilbertO$ with levels $\ket{G}$, $\ket{E}$, $\ket{M}$. The Hilbert space may be truncated to $\ket{G}$ if the parameter `Λ` representing $\Lambda(t)$ is passed as `nothing`. Note that `Λ = 0.0` is possible to force inclusion of all optical levels.
 * The Hilbert space of the NV center electronic spin is $\HilbertS$ with levels $\ket{+1}$, $\ket{0}$, $\ket{-1}$. The $\ket{-1}$ level is truncated if the `Ω`$_{-}$ parameter representing $\Omega_{-}(t)$ is given as `nothing`, and likewise for $\ket{+1}$ and `Ω`$_{+}$. Either `Ω`$_{+}$ or `Ω`$_{-}$ can be passed as `0.0` to force inclusion of the level.
 * The nuclear spin of each surrounding C13 is a TLS with Hilbert space $\HilbertI^{(n)}$ spanned by the states $\ket{\uparrow}$, $\ket{\downarrow}$. These get tensored into a $2^N$-dimensional spin space $\HilbertI = \HilbertI^{(1)} \otimes \dots \otimes \HilbertI^{(N)}$;
-for $N=2$: $\ket{\uparrow\uparrow}$, $\ket{\uparrow\downarrow}$, $\ket{\downarrow\uparrow}$, $\ket{\downarrow\downarrow}$ etc. for larger $N$.
+for $N=2$: $\ket{\uparrow\uparrow}$, $\ket{\uparrow\downarrow}$, $\ket{\downarrow\uparrow}$, $\ket{\downarrow\downarrow}$, etc., for larger $N$.
 
 The structure of the full Hilbert space is a little bit tricky, since the meta-stable state $\ket{M}$ does not distinguish between different electronic-spin degrees of freedom, and thus the three Hilbert spaces are not simply tensored. Instead,
 
@@ -85,7 +85,7 @@ $$
     + \Omega_{+}(t) \cos(\omega_{+} t + \phi_{+}(t))\,,
 $$ {#eq-combined-mw-field}
 
-where the factor $\frac{1}{\sqrt{2}}$ is to compensate the normalization factor in the $\hat{S}_x$ operator, see below in @sec-lab. In a two-color rotating frame for the central frequencies $\omega_{\pm}$, this results in four independent control fields:
+where the factor $\frac{1}{\sqrt{2}}$ is to compensate for the normalization factor in the $\hat{S}_x$ operator, see below in @sec-lab. In a two-color rotating frame for the central frequencies $\omega_{\pm}$, this results in four independent control fields:
 
 1. $\omega_{-}(t) \equiv \frac{d\phi_{-}(t)}{dt}$, the deviation (dynamic shift) from the central frequency $\omega_{-}$. Note that we use both the time-dependent $\omega_{-}(t)$ and the time-independent $\omega_{-}$ with different meanings.
 2. $\omega_{+}(t) \equiv \frac{d\phi_{+}(t)}{dt}$, the deviation (dynamic shift) from the central frequency $\omega_{+}$
@@ -150,7 +150,7 @@ $$
 \end{pmatrix}\,.
 $$
 
-If were are only going to drive one of the $-1 \leftrightarrow 0$ or $0 \leftrightarrow +1$ transitions, we can simply truncate the Hilbert space by cutting the above matrices to from $3 \times 3$ to $2 \times 2$.
+If we are only going to drive one of the $-1 \leftrightarrow 0$ or $0 \leftrightarrow +1$ transitions, we can simply truncate the Hilbert space by cutting the above matrices from $3 \times 3$ to $2 \times 2$.
 
 The nuclear spin is spin-$\frac{1}{2}$, and thus,
 $$
@@ -206,7 +206,7 @@ $$
 \hat{H}_{\RWA} = i \hbar \dot{U}_{\RWA} \hat{U}_{\RWA}^\dagger + \hat{U}_{\RWA} \hat{H}_{\lab} \hat{U}_{\RWA}^\dagger
 $$ {#eq-H-RWA-general}
 
-We again have the implicit tensor product, i.e. in the full Hilbert space, @eq-H-RWA-general is more properly written with  $\hat{U}_{\RWA} \rightarrow \hat{U}_{\RWA} \otimes 𝟙_I$. It is helpful to explicitly consider the transformation in the electronic-spin-subspace within this tensor structure. For the first term in @eq-H-RWA-general,
+We again have the implicit tensor product, i.e., in the full Hilbert space, @eq-H-RWA-general is more properly written with  $\hat{U}_{\RWA} \rightarrow \hat{U}_{\RWA} \otimes 𝟙_I$. It is helpful to explicitly consider the transformation in the electronic-spin-subspace within this tensor structure. For the first term in @eq-H-RWA-general,
 
 $$
 i \hbar \left(\frac{\partial}{\partial t}(\hat{U}_{\RWA} \otimes 𝟙_I)\right)\left(\hat{U}_{\RWA} \otimes 𝟙_I \right)^\dagger
@@ -238,7 +238,7 @@ $$
 = \hat{A} \hat{C} \otimes \hat{B}\hat{D}
 $$ {#eq-tensor-distributivity}
 
-We can now apply this to the individual operators in @eq-lab-hamiltonian, while also neglecting any fast-rotating terms $\propto \exp(\pm i \omega_{\pm}t)$ (or faster), with the resonance-condition
+We can now apply this to the individual operators in @eq-lab-hamiltonian, while also neglecting any fast-rotating terms $\propto \exp(\pm i \omega_{\pm}t)$ (or faster), with the resonance condition
 
 $$
 \omega_{\pm} = D - B \gamma_e \cos(\theta) - \delta_{\pm}
@@ -264,7 +264,7 @@ $$
 = \hat{S}_z \otimes \hat{A}_I^{(n)}\,,
 $$ {#eq-hyperfine-RWA}
 
-with the hyperfine-projections
+with the hyperfine projections
 
 $$
 \hat{A}_I^{(n)}
@@ -355,7 +355,7 @@ $$
 \end{pmatrix}\,.
 $$ {#eq-hamiltonian-rwa-matrix-minus}
 
-Note the  off-resonant Rabi-cycling in the $\ket{\pm 1}$ manifolds, cf. also @eq-A-I-matrix.
+Note the off-resonant Rabi-cycling in the $\ket{\pm 1}$ manifolds, cf. also @eq-A-I-matrix.
 
 
 ## Diagonalizing the Hyperfine Interaction {#sec-diag}
@@ -466,7 +466,7 @@ with the $A$ given in @eq-A.
 
 TODO
 
-After a Landau-Zener transition the probability of population transfer is [@LandauZener.jl]
+After a Landau-Zener transition, the probability of population transfer is [@LandauZener.jl]
 
 $$
 P_{LZ} = \exp\left(-2 \pi \frac{\vert\Omega\vert^2}{\vert\alpha\vert^2} \right)

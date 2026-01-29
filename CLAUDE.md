@@ -17,6 +17,7 @@ The physical model is detailed in notes/hamiltonian.qmd. There are example Jupyt
 - `make devrepl` - Start interactive REPL with test dependencies loaded
 - `make codestyle` - Format code using JuliaFormatter
 - `make docs` - Build documentation
+- `make distclean` - Restore the repo to a clean checkout state. This includes removing `Manifest.toml` files.
 
 ### Testing
 
@@ -56,3 +57,5 @@ The `test` environment encompasses the `docs` environment. Run `make test/Manife
 This code formatting MUST be run every time any `.jl` file is modified.
 
 Make sure to only use explicit imports in Julia code, and that there are no imported functions or constants that are not actually used.
+
+When adding a new dependency to any `Project.toml` file, run `make distclean`, and then `make test/Manifest.toml`, `make docs/Manifest.toml`, etc. to recreate manifest files as necessary.

@@ -2,9 +2,9 @@
 
 For the purpose of implementing a very general numerical model of the interaction of the nuclear spin of one or more ¹³C atoms with the electronic spin of a single NV center in diamond in a private `C13NV` Julia package, we extensively discuss the Hamiltonian and Liouvillian for the system in full generality. Within `C13NV`, the construction is encapsulated in a `make_nv_system` function, that receives various system parameters and returns a Hamiltonian or Liouvillian (a `QuantumPropagators.Generators.Generator` instance) along with a list of labels (each label is a tuple of strings).
 
-We discuss first the high-level structure of the Hilbert space ([Structure of the Hilbert space](@ref)) and the Hamiltonian/Liouvillian ([Structure of the Hamiltonian and Liouvillian](@ref)) before deriving the operators in detail. [Lab Frame Hamiltonian for the Ground State Manifold](@ref) lists the lab frame Hamiltonian and defines the spin operators for the electronic and nuclear spins. [Microwave Field Rotating Wave Approximation](@ref) transforms the lab frame Hamiltonian into the rotating frame. This yields one possible Hamiltonian to use numerically (`frame = :rwa`). [Diagonalizing the Hyperfine Interaction](@ref) goes further by analytically diagonalizing the hyperfine interaction between the nuclear spin and the electronic spin of the NV center. This yields an alternative form of the Hamiltonian (`frame = :diag`), which allows for a better understanding of avoided Landau-Zener crossings, discussed in [Mapping between Electronic and Nuclear Spins via Landau-Zener Crossings](@ref). Lastly, [Dissipators for the Excited and Metastable Manifolds](@ref) describes the Lindblad operators for the full dissipative model.
+We discuss first the high-level structure of the Hilbert space ([Structure of the Hilbert space](@ref sec-hilbert-structure)) and the Hamiltonian/Liouvillian ([Structure of the Hamiltonian and Liouvillian](@ref sec-hamiltonian-structure)) before deriving the operators in detail. [Lab Frame Hamiltonian for the Ground State Manifold](@ref sec-lab) lists the lab frame Hamiltonian and defines the spin operators for the electronic and nuclear spins. [Microwave Field Rotating Wave Approximation](@ref sec-rwa) transforms the lab frame Hamiltonian into the rotating frame. This yields one possible Hamiltonian to use numerically (`frame = :rwa`). [Diagonalizing the Hyperfine Interaction](@ref sec-diag) goes further by analytically diagonalizing the hyperfine interaction between the nuclear spin and the electronic spin of the NV center. This yields an alternative form of the Hamiltonian (`frame = :diag`), which allows for a better understanding of avoided Landau-Zener crossings, discussed in [Mapping between Electronic and Nuclear Spins via Landau-Zener Crossings](@ref sec-lz). Lastly, [Dissipators for the Excited and Metastable Manifolds](@ref sec-dissipation) describes the Lindblad operators for the full dissipative model.
 
-## Structure of the Hilbert space
+## [Structure of the Hilbert space](@id sec-hilbert-structure)
 
 - The optical Hilbert space is ``ℋ_O`` with levels ``|G⟩``, ``|E⟩``, ``|M⟩``. The Hilbert space may be truncated to ``|G⟩`` if the parameter `Λ` representing ``\Lambda(t)`` is passed as `nothing`. Note that `Λ = 0.0` is possible to force inclusion of all optical levels.
 - The Hilbert space of the NV center electronic spin is ``ℋ_S`` with levels ``|+1⟩``, ``|0⟩``, ``|-1⟩``. The ``|-1⟩`` level is truncated if the `Ω₋` parameter representing ``\Omega_{-}(t)`` is given as `nothing`, and likewise for ``|+1⟩`` and `Ω₊`. Either `Ω₊` or `Ω₋` can be passed as `0.0` to force inclusion of the level.
@@ -25,9 +25,9 @@ The structure of the full Hilbert space is a little bit tricky, since the meta-s
 \end{equation}
 ```
 
-where ``ℐ_G``, ``ℐ_E``, and ``ℐ_M`` are the (trivial) one-dimensional Hilbert spaces consisting only of the optical levels ``|G⟩``, ``|E⟩``, and ``|M⟩``, respectively. ``ℋ_S`` is the Hilbert space of the electronic spin, spanned by the three levels ``|+1⟩``, ``|0⟩``, ``|-1⟩`` (or a truncation thereof). We may define ``ℋ_{OS} = ((ℐ_G \oplus ℐ_E) \otimes \, ℋ_S \, \oplus \, ℐ_M)`` in the third line of Equation ``\eqref{eq-Hilbert-space-structure}`` as the combined Hilbert space for the optical and electronic-spin degree of freedom, with the basis ``|G,+1⟩``, ``|G,0⟩``, ``|G,-1⟩``, ``|E,+1⟩``, ``|E,0⟩``, ``|E,-1⟩``, ``|M⟩``. The structure in lines 2 and 3 of Equation ``\eqref{eq-Hilbert-space-structure}`` is particularly helpful for constructing the relevant Lindblad operators in the full (optical) system.
+where ``ℐ_G``, ``ℐ_E``, and ``ℐ_M`` are the (trivial) one-dimensional Hilbert spaces consisting only of the optical levels ``|G⟩``, ``|E⟩``, and ``|M⟩``, respectively. ``ℋ_S`` is the Hilbert space of the electronic spin, spanned by the three levels ``|+1⟩``, ``|0⟩``, ``|-1⟩`` (or a truncation thereof). We may define ``ℋ_{OS} = ((ℐ_G \oplus ℐ_E) \otimes \, ℋ_S\, \oplus \, ℐ_M)`` in the third line of Equation ``\eqref{eq-Hilbert-space-structure}`` as the combined Hilbert space for the optical and electronic-spin degree of freedom, with the basis ``|G,+1⟩``, ``|G,0⟩``, ``|G,-1⟩``, ``|E,+1⟩``, ``|E,0⟩``, ``|E,-1⟩``, ``|M⟩``. The structure in lines 2 and 3 of Equation ``\eqref{eq-Hilbert-space-structure}`` is particularly helpful for constructing the relevant Lindblad operators in the full (optical) system.
 
-## Structure of the Hamiltonian and Liouvillian
+## [Structure of the Hamiltonian and Liouvillian](@id sec-hamiltonian-structure)
 
 The transitions in the electronic spin states of the NV center ``|+1⟩``, ``|0⟩``, ``|-1⟩ \in ℋ_S`` are driven by a microwave (MW) field
 
@@ -41,7 +41,7 @@ The transitions in the electronic spin states of the NV center ``|+1⟩``, ``|0�
 \end{equation}
 ```
 
-where the factor ``\frac{1}{\sqrt{2}}`` is to compensate for the normalization factor in the ``\hat{S}_x`` operator, see below in [Lab Frame Hamiltonian for the Ground State Manifold](@ref). In a two-color rotating frame for the central frequencies ``\omega_{\pm}``, this results in four independent control fields:
+where the factor ``\frac{1}{\sqrt{2}}`` is to compensate for the normalization factor in the ``\hat{S}_x`` operator, see below in [Lab Frame Hamiltonian for the Ground State Manifold](@ref sec-lab). In a two-color rotating frame for the central frequencies ``\omega_{\pm}``, this results in four independent control fields:
 
 1.  ``\omega_{-}(t) \equiv \frac{d\phi_{-}(t)}{dt}``, the deviation (dynamic shift) from the central frequency ``\omega_{-}``. Note that we use both the time-dependent ``\omega_{-}(t)`` and the time-independent ``\omega_{-}`` with different meanings.
 2.  ``\omega_{+}(t) \equiv \frac{d\phi_{+}(t)}{dt}``, the deviation (dynamic shift) from the central frequency ``\omega_{+}``
@@ -63,7 +63,7 @@ with the drift Hamiltonian ``\hat{H_0}``, the control Hamiltonians ``\hat{H}_{\o
 Construction of the Hamiltonian proceeds as follows:
 
 1. Construct spin operators for the appropriately truncated Hilbert space ``ℋ_S``, as well as ``ℋ_I^{(n)}``
-2. Construct the parts of Equation ``\eqref{eq-combined-mw-field}`` ``\in ℋ_S \otimes ℋ_I`` according to Equation ``\eqref{eq-rwa-hamiltonian-nested-list}`` if `frame = :rwa`, see [Microwave Field Rotating Wave Approximation](@ref), or Equation ``\eqref{eq-hamiltonian-diagonal-nested-list}`` if `frame = :diag`, see [Diagonalizing the Hyperfine Interaction](@ref)
+2. Construct the parts of Equation ``\eqref{eq-combined-mw-field}`` ``\in ℋ_S \otimes ℋ_I`` according to Equation ``\eqref{eq-rwa-hamiltonian-nested-list}`` if `frame = :rwa`, see [Microwave Field Rotating Wave Approximation](@ref sec-rwa), or Equation ``\eqref{eq-hamiltonian-diagonal-nested-list}`` if `frame = :diag`, see [Diagonalizing the Hyperfine Interaction](@ref sec-diag)
 3. If the full optical Hilbert space ``ℋ_O`` is required (`Λ` is given), extend each operator into the full ``ℋ`` according to
 
    ```math
@@ -74,10 +74,9 @@ Construction of the Hamiltonian proceeds as follows:
 
    cf. the first line of Equation ``\eqref{eq-Hilbert-space-structure}``, with the trivial ``𝟙_G =  𝟙_E  = 𝟙_M = 1``. That is, we are simply padding the Hamiltonian with zeros to reach the size of the full Hilbert space. The choice of ``𝟘_S`` and ``𝟘_I`` reflects the fact that there are no coherent dynamics in the ``|E⟩`` and ``|M⟩`` manifolds.
 
+The `make_nv_system` function returns a Liouvillian if `Λ` is given, or if decay rates ``\gamma_{\pm 1}`` for the spontaneous decay in the electronic spin levels is given with a decay rate ``> 0``. The incoherent drive with `Λ` is time-dependent, and must be set up specially, see [Dissipators for the Excited and Metastable Manifolds](@ref sec-dissipation) for details.
 
-The `make_nv_system` function returns a Liouvillian if `Λ` is given, or if decay rates ``\gamma_{\pm 1}`` for the spontaneous decay in the electronic spin levels is given with a decay rate ``> 0``. The incoherent drive with `Λ` is time-dependent, and must be set up specially, see [Dissipators for the Excited and Metastable Manifolds](@ref) for details.
-
-## Lab Frame Hamiltonian for the Ground State Manifold
+## [Lab Frame Hamiltonian for the Ground State Manifold](@id sec-lab)
 
 We are considering here the Hamiltonian of a single electronic spin described in the ground-state manifold ``|G⟩`` by the spin operators ``\hat{\mathbf{S}} = (\hat{S}_x, \hat{S}_y, \hat{S}_z)`` and ``N`` nuclear spins described by ``\hat{\mathbf{I}}^{(n)} = (\hat{I}^{(n)}_x, \hat{I}^{(n)}_y, \hat{I}^{(n)}_z)``, with the element ``A_{i,j}^{(n)}`` of the hyperfine tensor giving the strength of the interaction between the ``j = x,y,z`` components of the ``n``'th nuclear spin and the ``i = x,y,z`` component of the electronic spin. The full Hamiltonian has the form [AjoySA2018, MultiCarbon.jl](@cite),
 
@@ -85,12 +84,12 @@ We are considering here the Hamiltonian of a single electronic spin described in
 \begin{equation}\label{eq-lab-hamiltonian}
 
 \hat{H}_{\text{lab}} = D \hat{S}_z^2 - \gamma_e \mathbf{B} \cdot \hat{\mathbf{S}} + \sum_{n=1}^{N} \left( \sum_{\substack{i,j\\=x, y, z}} A^{(n)}_{i,j} (\hat{S}_i \otimes \hat{I}^{(n)}_j) - \gamma_c \mathbf{B} \cdot \hat{\mathbf{I}}^{(n)}
-\right) + \Omega(t) \hat{S}_x\,,
+\right) + \mu \Omega(t) \hat{S}_x\,,
 
 \end{equation}
 ```
 
-with ``\Omega(t)`` given by Equation ``\eqref{eq-combined-mw-field}``, the electronic spin energy ``D \approx`` 3 GHz, the electron gyromagnetic ratio ``\gamma_e =`` 2.8 MHz/G, the nuclear gyromagnetic ratio ``\gamma_c =`` 1.07 kHz/G, and the hyperfine tensor ``A^{(n)}`` mediating the interaction between the n-th carbon nuclear spin and the electronic spin of the NV center. The spin operators for the electronic spin are those for a spin-1 particle, with quantum numbers ``(+1, 0, -1)``, cf. the ``\hat{S}_z`` operator:
+with ``\Omega(t)`` given by Equation ``\eqref{eq-combined-mw-field}``, the electronic spin energy ``D \approx`` 3 GHz, the electron gyromagnetic ratio ``\gamma_e =`` 2.8 MHz/G, the nuclear gyromagnetic ratio ``\gamma_c =`` 1.07 kHz/G, and the hyperfine tensor ``A^{(n)}`` mediating the interaction between the n-th carbon nuclear spin and the electronic spin of the NV center. The factor ``\mu`` is ``\mu = 1`` by default, but allows to account for the NV center seeing a reduced microwave field (due to field gradient across an ensemble of NV centers).The spin operators for the electronic spin are those for a spin-1 particle, with quantum numbers ``(+1, 0, -1)``, cf. the ``\hat{S}_z`` operator:
 
 ```math
 
@@ -158,7 +157,7 @@ The magnetic field vector is
 
 with the azimuthal angle ``\theta``, the polar angle ``\phi``, and the field-strength ``B``. We will assume ``\theta = 0``, but there is no need to restrict a numerical model to a magnetic field not aligned with the ``z``-axis defined by the NV center. In Equation ``\eqref{eq-lab-hamiltonian}``, operators are implicitly tensored with the identity operator of all other subspaces.
 
-## Microwave Field Rotating Wave Approximation
+## [Microwave Field Rotating Wave Approximation](@id sec-rwa)
 
 To simplify the numerical model, and to remove the fast oscillations ``\omega_{+}`` and ``\omega_{-}``, we transform the Hamiltonian to a rotating frame and apply the rotating wave approximation (RWA). The main result of this section is Equation ``\eqref{eq-rwa-hamiltonian}``.
 
@@ -177,7 +176,7 @@ The rotating frame is defined by the operator
 \end{equation}
 ```
 
-in the electronic spin subspace. The wave function in the rotating frame is defined as ``\ket{\tilde{\Psi}(t)} = \hat{U}_{\text{RWA}}(t) \ket{\Psi(t)}``. The Hamiltonian in the rotating frame is
+in the electronic spin subspace. The wave function in the rotating frame is defined as ``|\tilde{\Psi}(t)⟩ = \hat{U}_{\text{RWA}}(t) |\Psi(t)⟩``. The Hamiltonian in the rotating frame is
 
 ```math
 \begin{equation}\label{eq-H-RWA-general}
@@ -233,7 +232,7 @@ In both cases, we have made use of the distributive property of tensor and matri
 \end{equation}
 ```
 
-We can now apply this to the individual operators in Equation ``\eqref{eq-lab-hamiltonian}``, while also neglecting any fast-rotating terms ``\propto \exp(\pm i \omega_{\pm}t)`` (or faster), with the resonance-condition
+We can now apply this to the individual operators in Equation ``\eqref{eq-lab-hamiltonian}``, while also neglecting any fast-rotating terms ``\propto \exp(\pm i \omega_{\pm}t)`` (or faster), with the resonance condition
 
 ```math
 \begin{equation}\label{eq-resonance-condition}
@@ -271,7 +270,7 @@ so that
 \end{equation}
 ```
 
-with the hyperfine-projections
+with the hyperfine projections
 
 ```math
 \begin{equation}\label{eq-A-I-matrix}
@@ -318,7 +317,7 @@ with
 
 \hat{\delta} = \text{diag}\left[\delta_{+}, 0, \delta_{-}\right],\quad
 \hat{\omega}(t) = \text{diag}\left[\dot\phi_{+}(t), 0, \dot\phi_{-}(t)\right],\quad
-\hat{\Omega}(t) = \frac{1}{2} \begin{pmatrix}
+\hat{\Omega}(t) = \frac{\mu}{2} \begin{pmatrix}
         0         &  \Omega_{+}(t)  &     0         \\
     \Omega_{+}(t) &      0          & \Omega_{-}(t) \\
         0         &  \Omega_{-}(t)  &      0
@@ -335,8 +334,8 @@ For the nested-list format in Equation ``\eqref{eq-nested-list}``, this means
 \hat{H}_{0, \text{RWA}} & = \hat{\delta} \otimes 𝟙_I + \sum_{n=1}^{N} \left(\hat{S}_z \otimes \hat{A}_I^{(n)} - \gamma_c 𝟙_S \otimes \hat{B}_I^{(n)} \right) \\
 \hat{H}_{\omega_{-}, \text{RWA}} & = -|-1⟩⟨-1| \; \otimes \; 𝟙_I \\
 \hat{H}_{\omega_{+}, \text{RWA}} & = -|+1⟩⟨+1| \; \otimes \; 𝟙_I \\
-\hat{H}_{\Omega_{-}, \text{RWA}} & = \frac{1}{2} \left( |0⟩⟨-1| + |-1⟩⟨0| \right) \otimes 𝟙_I \\
-\hat{H}_{\Omega_{+}, \text{RWA}} & = \frac{1}{2} \left( |0⟩⟨+1| + |+1⟩⟨0| \right) \otimes 𝟙_I
+\hat{H}_{\Omega_{-}, \text{RWA}} & = \frac{\mu}{2} \left( |0⟩⟨-1| + |-1⟩⟨0| \right) \otimes 𝟙_I \\
+\hat{H}_{\Omega_{+}, \text{RWA}} & = \frac{\mu}{2} \left( |0⟩⟨+1| + |+1⟩⟨0| \right) \otimes 𝟙_I
 \end{split}
 
 \end{equation}
@@ -366,10 +365,10 @@ In explicit matrix form, the Hamiltonian for this special case in the subspace i
 \begin{equation}\label{eq-hamiltonian-rwa-matrix-plus}
 
 \hat{H}_{\text{RWA}, +} = \begin{pmatrix}
-    \frac{A_{zz}}{2} - \frac{B \gamma_c}{2} - \alpha_{+}(t - t_{+}) + \delta_{+} & \frac{A_{zx}}{2} & \frac{\Omega_{+}(t)}{2} & 0 \\
-    \frac{A_{zx}}{2} & -\frac{A_{zz}}{2} + \frac{B \gamma_c}{2} - \alpha_{+} (t - t_{+}) + \delta_{+} & 0 & \frac{\Omega_{+}(t)}{2} \\
-    \frac{\Omega_{+}(t)}{2} & 0 & -\frac{B \gamma_c}{2} & 0 \\
-    0 & \frac{\Omega_{+}(t)}{2} & 0 & \frac{B \gamma_c}{2}
+    \frac{A_{zz}}{2} - \frac{B \gamma_c}{2} - \alpha_{+}(t - t_{+}) + \delta_{+} & \frac{A_{zx}}{2} & \frac{\mu\Omega_{+}(t)}{2} & 0 \\
+    \frac{A_{zx}}{2} & -\frac{A_{zz}}{2} + \frac{B \gamma_c}{2} - \alpha_{+} (t - t_{+}) + \delta_{+} & 0 & \frac{\mu\Omega_{+}(t)}{2} \\
+    \frac{\mu\Omega_{+}(t)}{2} & 0 & -\frac{B \gamma_c}{2} & 0 \\
+    0 & \frac{\mu\Omega_{+}(t)}{2} & 0 & \frac{B \gamma_c}{2}
 \end{pmatrix}\,,
 
 \end{equation}
@@ -381,18 +380,18 @@ and, in the subspace with electronic spin ``0`` and ``-1``,
 \begin{equation}\label{eq-hamiltonian-rwa-matrix-minus}
 
 \hat{H}_{\text{RWA}, -} = \begin{pmatrix}
-    -\frac{B \gamma_c}{2} & 0 & \frac{\Omega_{-}(t)}{2} & 0\\
-    0 & \frac{B \gamma_c}{2} & 0 & \frac{\Omega_{-}(t)}{2} \\
-    \frac{\Omega_{-}(t)}{2} & 0 & - \frac{A_{zz}}{2} - \frac{B \gamma_c}{2} - \alpha_{-}(t - t_{-}) + \delta_{-} & \frac{A_{zx}}{2} \\
-    0 & \frac{\Omega_{-}(t)}{2} & -\frac{A_{zx}}{2} & \frac{A_{zz}}{2} + \frac{B \gamma_c}{2} - \alpha_{-} (t - t_{-}) + \delta_{-} \\
+    -\frac{B \gamma_c}{2} & 0 & \frac{\mu\Omega_{-}(t)}{2} & 0\\
+    0 & \frac{B \gamma_c}{2} & 0 & \frac{\mu\Omega_{-}(t)}{2} \\
+    \frac{\mu\Omega_{-}(t)}{2} & 0 & - \frac{A_{zz}}{2} - \frac{B \gamma_c}{2} - \alpha_{-}(t - t_{-}) + \delta_{-} & \frac{A_{zx}}{2} \\
+    0 & \frac{\mu\Omega_{-}(t)}{2} & -\frac{A_{zx}}{2} & \frac{A_{zz}}{2} + \frac{B \gamma_c}{2} - \alpha_{-} (t - t_{-}) + \delta_{-} \\
 \end{pmatrix}\,.
 
 \end{equation}
 ```
 
-Note the off-resonant Rabi-cycling in the ``|± 1⟩`` manifolds, cf. also Equation ``\eqref{eq-A-I-matrix}``.
+Note the off-resonant Rabi-cycling in the ``|\pm 1⟩`` manifolds, cf. also Equation ``\eqref{eq-A-I-matrix}``.
 
-## Diagonalizing the Hyperfine Interaction
+## [Diagonalizing the Hyperfine Interaction](@id sec-diag)
 
 We can further simplify the Hamiltonian by diagonalizing the projection of the hyperfine matrix into the nuclear-spin subspace, Equation ``\eqref{eq-A-I-matrix}``. We note that ``\hat{A}_I^{(n)}`` is Hermitian, and thus real-valued eigenvalues and a unitary transformation operator ``\hat{R}^{(n)}`` so that
 
@@ -464,8 +463,8 @@ For ``R^{(n)}``, with proper normalization (``R^{(n)} {R^{(n)}}^{\dagger} = 𝟙
 \begin{equation}\label{eq-R}
 
 \hat{R}^{(n)} = \frac{1}{\sqrt{2}} \begin{pmatrix}
-	\frac{A_{zz} + A}{\sqrt{A^2 + A A_{zz}}} & \frac{A_{zz} - A}{\sqrt{A^2 - A A_{zz}}} \\
-	\frac{A_{zx} + i A_{zy}}{\sqrt{A^2 + A A_{zz}}} & \frac{A_{zx} + i A_{zy}}{\sqrt{A^2 - A A_{zz}}}
+    \frac{A_{zz} + A}{\sqrt{A^2 + A A_{zz}}} & \frac{A_{zz} - A}{\sqrt{A^2 - A A_{zz}}} \\
+    \frac{A_{zx} + i A_{zy}}{\sqrt{A^2 + A A_{zz}}} & \frac{A_{zx} + i A_{zy}}{\sqrt{A^2 - A A_{zz}}}
 \end{pmatrix}
 
 \end{equation}
@@ -495,7 +494,7 @@ The Hamiltonian in this diagonal frame is
 \end{equation}
 ```
 
-with ``\hat{B}_I^{(n)}`` defined in Equation ``\eqref{eq-B-I-matrix}``. Any wave function ``\ket{\tilde{\Psi}(t)}`` in the rotating frame is transformed into the diagonal frame as ``\ket{\Psi(t)} = \hat{R}^\dagger \ket{\tilde{\Psi}(t)}``. Note the dagger, as we have used the common notation for the eigendecomposition in Equation ``\eqref{eq-eigendecomposition}``, which is the opposite from the notation used for the rotating frame, cf. Equation ``\eqref{eq-H-RWA-general}``. The transformation affects the relative population in the nuclear spins. In the diagonal frame, after ``\Omega(t)`` has been switched off, the populations remain stable (since the Hamiltonian is diagonal). In contrast, in the lab/rotating frame, we would be seeing indefinite off-resonant Rabi-cycling in the ``\ket{\pm 1}`` manifolds. The transformation ``\hat{R}`` precisely restores the superposition due to this Rabi cycling.
+with ``\hat{B}_I^{(n)}`` defined in Equation ``\eqref{eq-B-I-matrix}``. Any wave function ``|\tilde{\Psi}(t)⟩`` in the rotating frame is transformed into the diagonal frame as ``|\Psi(t)⟩ = \hat{R}^\dagger |\tilde{\Psi}(t)⟩``. Note the dagger, as we have used the common notation for the eigendecomposition in Equation ``\eqref{eq-eigendecomposition}``, which is the opposite from the notation used for the rotating frame, cf. Equation ``\eqref{eq-H-RWA-general}``. The transformation affects the relative population in the nuclear spins. In the diagonal frame, after ``\Omega(t)`` has been switched off, the populations remain stable (since the Hamiltonian is diagonal). In contrast, in the lab/rotating frame, we would be seeing indefinite off-resonant Rabi-cycling in the ``|\pm 1⟩`` manifolds. The transformation ``\hat{R}`` precisely restores the superposition due to this Rabi cycling.
 
 For the nested-list format in Equation ``\eqref{eq-nested-list}``, this means
 
@@ -509,7 +508,6 @@ For the nested-list format in Equation ``\eqref{eq-nested-list}``, this means
 
 and ``\hat{H}_{\omega_{-}, \text{diag}}`` ``\hat{H}_{\omega_{+}, \text{diag}}`` ``\hat{H}_{\Omega_{-}, \text{diag}}`` ``\hat{H}_{\Omega_{+}, \text{diag}}`` as in Equation ``\eqref{eq-rwa-hamiltonian-nested-list}``; all operators in ``ℋ_S \otimes ℋ_I``. The only difference between the rotating frame Hamiltonian in Equation ``\eqref{eq-rwa-hamiltonian}`` and the diagonal frame Hamiltonian is the term ``\hat{S}_z \otimes \hat{A}_I^{(n)}`` in Equation ``\eqref{eq-rwa-hamiltonian}`` and Equation ``\eqref{eq-rwa-hamiltonian-nested-list}`` being replaced with ``A^{(n)} \hat{S}_z \otimes \hat{I}_z^{(n)}`` in Equation ``\eqref{eq-hamiltonian-diagonal}`` and Equation ``\eqref{eq-hamiltonian-diagonal-nested-list}``.
 
-
 ### Linear Chirp and Single Carbon
 
 As we did in the rotating frame in Equation ``\eqref{eq-hamiltonian-rwa-matrix-plus}`` and Equation ``\eqref{eq-hamiltonian-rwa-matrix-minus}``, we can again write out the Hamiltonian for the ``0/+1`` and ``0/-1`` manifolds under the assumption of a single nuclear spin and a linear chirp.
@@ -518,10 +516,10 @@ As we did in the rotating frame in Equation ``\eqref{eq-hamiltonian-rwa-matrix-
 \begin{equation}\label{eq-hamiltonian-diag-matrix-plus}
 
 \hat{H}_{\text{RWA}, +} = \begin{pmatrix}
-    \frac{A}{2} - \frac{B \gamma_c}{2} - \alpha_{+}(t - t_{+}) + \delta_{+} &         0        & \frac{\Omega_{+}(t)}{2} & 0 \\
-            0        & -\frac{A}{2} + \frac{B \gamma_c}{2} - \alpha_{+} (t - t_{+}) + \delta_{+} & 0 & \frac{\Omega_{+}(t)}{2} \\
-    \frac{\Omega_{+}(t)}{2} & 0 & -\frac{B \gamma_c}{2} & 0 \\
-    0 & \frac{\Omega_{+}(t)}{2} & 0 & \frac{B \gamma_c}{2}
+    \frac{A}{2} - \frac{B \gamma_c}{2} - \alpha_{+}(t - t_{+}) + \delta_{+} &         0        & \frac{\mu\Omega_{+}(t)}{2} & 0 \\
+            0        & -\frac{A}{2} + \frac{B \gamma_c}{2} - \alpha_{+} (t - t_{+}) + \delta_{+} & 0 & \frac{\mu\Omega_{+}(t)}{2} \\
+    \frac{\mu\Omega_{+}(t)}{2} & 0 & -\frac{B \gamma_c}{2} & 0 \\
+    0 & \frac{\mu\Omega_{+}(t)}{2} & 0 & \frac{B \gamma_c}{2}
 \end{pmatrix}\,,
 
 \end{equation}
@@ -531,10 +529,10 @@ As we did in the rotating frame in Equation ``\eqref{eq-hamiltonian-rwa-matrix-
 \begin{equation}\label{eq-hamiltonian-diag-matrix-minus}
 
 \hat{H}_{\text{RWA}, -} = \begin{pmatrix}
-    -\frac{B \gamma_c}{2} & 0 & \frac{\Omega_{-}(t)}{2} & 0\\
-    0 & \frac{B \gamma_c}{2} & 0 & \frac{\Omega_{-}(t)}{2} \\
-    \frac{\Omega_{-}(t)}{2} & 0 & - \frac{A}{2} - \frac{B \gamma_c}{2} - \alpha_{-}(t - t_{-}) + \delta_{-} &        0         \\
-    0 & \frac{\Omega_{-}(t)}{2} &         0         & \frac{A}{2} + \frac{B \gamma_c}{2} - \alpha_{-} (t - t_{-}) + \delta_{-} \\
+    -\frac{B \gamma_c}{2} & 0 & \frac{\mu\Omega_{-}(t)}{2} & 0\\
+    0 & \frac{B \gamma_c}{2} & 0 & \frac{\mu\Omega_{-}(t)}{2} \\
+    \frac{\mu\Omega_{-}(t)}{2} & 0 & - \frac{A}{2} - \frac{B \gamma_c}{2} - \alpha_{-}(t - t_{-}) + \delta_{-} &        0         \\
+    0 & \frac{\mu\Omega_{-}(t)}{2} &         0         & \frac{A}{2} + \frac{B \gamma_c}{2} - \alpha_{-} (t - t_{-}) + \delta_{-} \\
 \end{pmatrix}\,,
 
 \end{equation}
@@ -542,7 +540,7 @@ As we did in the rotating frame in Equation ``\eqref{eq-hamiltonian-rwa-matrix-
 
 with the ``A`` given in Equation ``\eqref{eq-A}``.
 
-## Mapping between Electronic and Nuclear Spins via Landau-Zener Crossings
+## [Mapping between Electronic and Nuclear Spins via Landau-Zener Crossings](@id sec-lz)
 
 TODO
 
@@ -551,12 +549,12 @@ After a Landau-Zener transition, the probability of population transfer is [Land
 ```math
 \begin{equation}\label{eq-lz-probability}
 
-P_{LZ} = \exp\left(-2 \pi \frac{\vert\Omega\vert^2}{\vert\alpha\vert^2} \right)
+P_{LZ} = \exp\left(-2 \pi \frac{\vert\Omega\vert^2}{\vert\alpha\vert} \right)
 
 \end{equation}
 ```
 
-## Dissipators for the Excited and Metastable Manifolds
+## [Dissipators for the Excited and Metastable Manifolds](@id sec-dissipation)
 
 ![Level scheme of the combined optical-electronic subspace](assets/liouville_levels.svg)
 
@@ -571,7 +569,9 @@ where ``|E⟩⟨G|`` and ``|G⟩⟨E|`` are operators in the two-dimensional Hil
 
 ```math
 \begin{equation}\label{eq-dissipation-superop}
+
 L = (\hat{A}^\dagger)^T \otimes \hat{A} - \frac{1}{2} \left(𝟙 \otimes \hat{A}^\dagger \hat{A}\right) - \frac{1}{2} \left((\hat{A}^\dagger \hat{A})^T \otimes 𝟙\right)\,,
+
 \end{equation}
 ```
 
@@ -593,4 +593,4 @@ with ``\hat{A}`` the operator ``\hat{A}_{\Lambda}`` for ``\sqrt{\Lambda(t)} = 1`
 
 - ``\hat{A}_{\gamma_{-1}} = \sqrt{\gamma_{-1}}|G,0⟩⟨G,-1| \otimes 𝟙_I``
 
-The last two operators are under the assumption that spontaneous decay of the electronic spin occurs only in the ``|G⟩`` manifold, as indicated in the level scheme figure above; if that decay also occurred in the ``|E⟩`` manifold, the corresponding terms ``|E,0⟩\!\bra{E,\pm1}`` would have to be added to ``\hat{A}_{\gamma_{\pm1}}``. All of the above decay operators follow the structure of the third line in Equation ``\eqref{eq-Hilbert-space-structure}``.
+The last two operators are under the assumption that spontaneous decay of the electronic spin occurs only in the ``|G⟩`` manifold, as indicated in the figure above; if that decay also occurred in the ``|E⟩`` manifold, the corresponding terms ``|E,0⟩⟨E,\pm 1|`` would have to be added to ``\hat{A}_{\gamma_{\pm1}}``. All of the above decay operators follow the structure of the third line in Equation ``\eqref{eq-Hilbert-space-structure}``.

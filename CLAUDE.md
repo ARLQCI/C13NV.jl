@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 C13NV.jl is a Julia package for modeling nitrogen-vacancy (NV) centers in diamonds, focused on quantum control applications. It implements multi-level quantum systems with ground (G), excited (E), and metastable singlet (M) states, including nuclear spin coupling, magnetic field effects, and integration with the QuantumControl.jl ecosystem.
 
-The physical model is detailed in notes/hamiltonian.qmd. There are example Jupyter notebooks (saved via Jupytext) in the `examples` subfolder
-
 ## Development Commands
 
 ### Core Development
@@ -49,6 +47,7 @@ The project uses separate environments for different purposes:
 
 - **Test environment** (`test/Project.toml`): Additional testing dependencies
 - **Documentation** (`docs/Project.toml`): Documentation building tools
+- **Examples** (`examples/Project.toml`): Jupyter notebook examples, saved as `.jl` format via the Jupytext plugin
 
 The `test` environment encompasses the `docs` environment. Run `make test/Manifest.toml` once to make sure the test environment is properly instantiated. Then, `julia --project=test -e …` can run Julia code. For example, to apply code formatting:
 
@@ -56,8 +55,14 @@ The `test` environment encompasses the `docs` environment. Run `make test/Manife
 
 This code formatting MUST be run every time any `.jl` file is modified.
 
-Make sure to only use explicit imports in Julia code, and that there are no imported functions or constants that are not actually used.
+## Hamiltonian Notes
 
-When adding a new dependency to any `Project.toml` file, run `make distclean`, and then `make test/Manifest.toml`, `make docs/Manifest.toml`, etc. to recreate manifest files as necessary.
+The `notes` subdirectory contains a detailed derivation of the system Hamiltonian, as implemented by the `make_nv_system` function. The file `notes/hamiltonian.qmd` is the canonical source, written in Quarto markdown format. The same material is also part of the package documentation, in `docs/src/hamiltonian.md` (in Documenter-markdown format). The file `docs/src/hamiltonian.md` is maintained manually and should not be modified. To help with keeping `docs/src/hamiltonian.md` in sync with `notes/hamiltonian.qmd`, running `make -C notes hamiltonian.md` produces a file `notes/hamiltonian.md` via `pandoc` and the lua-filter `notes/qmd2documenter.lua` that partially translates Quarto markdown to Documenter markdown. The file `notes/hamiltonian.md` should be as close to `docs/src/hamiltonian.md` as possible.
 
-Never commit any changes or ask to commit. I will always create git commits manually.
+## General Guidelines
+
+* Make sure to only use explicit imports in Julia code, and that there are no imported functions or constants that are not actually used.
+
+* When adding a new dependency to any `Project.toml` file, run `make distclean`, and then `make test/Manifest.toml`, `make docs/Manifest.toml`, etc. to recreate manifest files as necessary.
+
+* Never commit any changes or ask to commit. I will always create git commits manually.

@@ -122,10 +122,10 @@ We are considering here the Hamiltonian of a single electronic spin described in
 
 $$
 \hat{H}_{\lab} = D \hat{S}_z^2 - \gamma_e \mathbf{B} \cdot \hat{\mathbf{S}} + \sum_{n=1}^{N} \left( \sum_{\substack{i,j\\=x, y, z}} A^{(n)}_{i,j} (\hat{S}_i \otimes \hat{I}^{(n)}_j) - \gamma_c \mathbf{B} \cdot \hat{\mathbf{I}}^{(n)}
-\right) + \Omega(t) \hat{S}_x\,,
+\right) + \mu \Omega(t) \hat{S}_x\,,
 $$ {#eq-lab-hamiltonian}
 
-with $\Omega(t)$ given by @eq-combined-mw-field, the electronic spin energy $D \approx$ 3 GHz, the electron gyromagnetic ratio $\gamma_e =$ 2.8 MHz/G, the nuclear gyromagnetic ratio $\gamma_c =$ 1.07 kHz/G, and the hyperfine tensor $A^{(n)}$ mediating the interaction between the n-th carbon nuclear spin and the electronic spin of the NV center. The spin operators for the electronic spin are those for a spin-1 particle, with quantum numbers $(+1, 0, -1)$, cf. the $\hat{S}_z$ operator:
+with $\Omega(t)$ given by @eq-combined-mw-field, the electronic spin energy $D \approx$ 3 GHz, the electron gyromagnetic ratio $\gamma_e =$ 2.8 MHz/G, the nuclear gyromagnetic ratio $\gamma_c =$ 1.07 kHz/G, and the hyperfine tensor $A^{(n)}$ mediating the interaction between the n-th carbon nuclear spin and the electronic spin of the NV center. The factor $\mu$ is $\mu = 1$ by default, but allows to account for the NV center seeing a reduced microwave field (due to field gradient across an ensemble of NV centers).The spin operators for the electronic spin are those for a spin-1 particle, with quantum numbers $(+1, 0, -1)$, cf. the $\hat{S}_z$ operator:
 
 $$
 \hat{S}_x = \frac{1}{\sqrt{2}}\begin{pmatrix}
@@ -299,7 +299,7 @@ with
 $$
 \hat{\delta} = \diag\left[\delta_{+}, 0, \delta_{-}\right],\quad
 \hat{\omega}(t) = \diag\left[\dot\phi_{+}(t), 0, \dot\phi_{-}(t)\right],\quad
-\hat{\Omega}(t) = \frac{1}{2} \begin{pmatrix}
+\hat{\Omega}(t) = \frac{\mu}{2} \begin{pmatrix}
         0         &  \Omega_{+}(t)  &     0         \\
     \Omega_{+}(t) &      0          & \Omega_{-}(t) \\
         0         &  \Omega_{-}(t)  &      0
@@ -313,8 +313,8 @@ $$
 \hat{H}_{0, \RWA} & = \hat{\delta} \otimes 𝟙_I + \sum_{n=1}^{N} \left(\hat{S}_z \otimes \hat{A}_I^{(n)} - \gamma_c 𝟙_S \otimes \hat{B}_I^{(n)} \right) \\
 \hat{H}_{\omega_{-}, \RWA} & = -\ketbra{-1}{-1} \; \otimes \; 𝟙_I \\
 \hat{H}_{\omega_{+}, \RWA} & = -\ketbra{+1}{+1} \; \otimes \; 𝟙_I \\
-\hat{H}_{\Omega_{-}, \RWA} & = \frac{1}{2} \left( \ketbra{0}{-1} + \ketbra{-1}{0} \right) \otimes 𝟙_I \\
-\hat{H}_{\Omega_{+}, \RWA} & = \frac{1}{2} \left( \ketbra{0}{+1} + \ketbra{+1}{0} \right) \otimes 𝟙_I
+\hat{H}_{\Omega_{-}, \RWA} & = \frac{\mu}{2} \left( \ketbra{0}{-1} + \ketbra{-1}{0} \right) \otimes 𝟙_I \\
+\hat{H}_{\Omega_{+}, \RWA} & = \frac{\mu}{2} \left( \ketbra{0}{+1} + \ketbra{+1}{0} \right) \otimes 𝟙_I
 \end{split}
 $$ {#eq-rwa-hamiltonian-nested-list}
 
@@ -337,10 +337,10 @@ the subspace including the electronic spin $0$ and the $+1$ subspace is @AjoySA2
 
 $$
 \hat{H}_{\RWA, +} = \begin{pmatrix}
-    \frac{A_{zz}}{2} - \frac{B \gamma_c}{2} - \alpha_{+}(t - t_{+}) + \delta_{+} & \frac{A_{zx}}{2} & \frac{\Omega_{+}(t)}{2} & 0 \\
-    \frac{A_{zx}}{2} & -\frac{A_{zz}}{2} + \frac{B \gamma_c}{2} - \alpha_{+} (t - t_{+}) + \delta_{+} & 0 & \frac{\Omega_{+}(t)}{2} \\
-    \frac{\Omega_{+}(t)}{2} & 0 & -\frac{B \gamma_c}{2} & 0 \\
-    0 & \frac{\Omega_{+}(t)}{2} & 0 & \frac{B \gamma_c}{2}
+    \frac{A_{zz}}{2} - \frac{B \gamma_c}{2} - \alpha_{+}(t - t_{+}) + \delta_{+} & \frac{A_{zx}}{2} & \frac{\mu\Omega_{+}(t)}{2} & 0 \\
+    \frac{A_{zx}}{2} & -\frac{A_{zz}}{2} + \frac{B \gamma_c}{2} - \alpha_{+} (t - t_{+}) + \delta_{+} & 0 & \frac{\mu\Omega_{+}(t)}{2} \\
+    \frac{\mu\Omega_{+}(t)}{2} & 0 & -\frac{B \gamma_c}{2} & 0 \\
+    0 & \frac{\mu\Omega_{+}(t)}{2} & 0 & \frac{B \gamma_c}{2}
 \end{pmatrix}\,,
 $$ {#eq-hamiltonian-rwa-matrix-plus}
 
@@ -348,10 +348,10 @@ and, in the subspace with electronic spin $0$ and $-1$,
 
 $$
 \hat{H}_{\RWA, -} = \begin{pmatrix}
-    -\frac{B \gamma_c}{2} & 0 & \frac{\Omega_{-}(t)}{2} & 0\\
-    0 & \frac{B \gamma_c}{2} & 0 & \frac{\Omega_{-}(t)}{2} \\
-    \frac{\Omega_{-}(t)}{2} & 0 & - \frac{A_{zz}}{2} - \frac{B \gamma_c}{2} - \alpha_{-}(t - t_{-}) + \delta_{-} & \frac{A_{zx}}{2} \\
-    0 & \frac{\Omega_{-}(t)}{2} & -\frac{A_{zx}}{2} & \frac{A_{zz}}{2} + \frac{B \gamma_c}{2} - \alpha_{-} (t - t_{-}) + \delta_{-} \\
+    -\frac{B \gamma_c}{2} & 0 & \frac{\mu\Omega_{-}(t)}{2} & 0\\
+    0 & \frac{B \gamma_c}{2} & 0 & \frac{\mu\Omega_{-}(t)}{2} \\
+    \frac{\mu\Omega_{-}(t)}{2} & 0 & - \frac{A_{zz}}{2} - \frac{B \gamma_c}{2} - \alpha_{-}(t - t_{-}) + \delta_{-} & \frac{A_{zx}}{2} \\
+    0 & \frac{\mu\Omega_{-}(t)}{2} & -\frac{A_{zx}}{2} & \frac{A_{zz}}{2} + \frac{B \gamma_c}{2} - \alpha_{-} (t - t_{-}) + \delta_{-} \\
 \end{pmatrix}\,.
 $$ {#eq-hamiltonian-rwa-matrix-minus}
 
@@ -444,19 +444,19 @@ As we did in the rotating frame in @eq-hamiltonian-rwa-matrix-plus and @eq-hamil
 
 $$
 \hat{H}_{\RWA, +} = \begin{pmatrix}
-    \frac{A}{2} - \frac{B \gamma_c}{2} - \alpha_{+}(t - t_{+}) + \delta_{+} &         0        & \frac{\Omega_{+}(t)}{2} & 0 \\
-            0        & -\frac{A}{2} + \frac{B \gamma_c}{2} - \alpha_{+} (t - t_{+}) + \delta_{+} & 0 & \frac{\Omega_{+}(t)}{2} \\
-    \frac{\Omega_{+}(t)}{2} & 0 & -\frac{B \gamma_c}{2} & 0 \\
-    0 & \frac{\Omega_{+}(t)}{2} & 0 & \frac{B \gamma_c}{2}
+    \frac{A}{2} - \frac{B \gamma_c}{2} - \alpha_{+}(t - t_{+}) + \delta_{+} &         0        & \frac{\mu\Omega_{+}(t)}{2} & 0 \\
+            0        & -\frac{A}{2} + \frac{B \gamma_c}{2} - \alpha_{+} (t - t_{+}) + \delta_{+} & 0 & \frac{\mu\Omega_{+}(t)}{2} \\
+    \frac{\mu\Omega_{+}(t)}{2} & 0 & -\frac{B \gamma_c}{2} & 0 \\
+    0 & \frac{\mu\Omega_{+}(t)}{2} & 0 & \frac{B \gamma_c}{2}
 \end{pmatrix}\,,
 $$ {#eq-hamiltonian-diag-matrix-plus}
 
 $$
 \hat{H}_{\RWA, -} = \begin{pmatrix}
-    -\frac{B \gamma_c}{2} & 0 & \frac{\Omega_{-}(t)}{2} & 0\\
-    0 & \frac{B \gamma_c}{2} & 0 & \frac{\Omega_{-}(t)}{2} \\
-    \frac{\Omega_{-}(t)}{2} & 0 & - \frac{A}{2} - \frac{B \gamma_c}{2} - \alpha_{-}(t - t_{-}) + \delta_{-} &        0         \\
-    0 & \frac{\Omega_{-}(t)}{2} &         0         & \frac{A}{2} + \frac{B \gamma_c}{2} - \alpha_{-} (t - t_{-}) + \delta_{-} \\
+    -\frac{B \gamma_c}{2} & 0 & \frac{\mu\Omega_{-}(t)}{2} & 0\\
+    0 & \frac{B \gamma_c}{2} & 0 & \frac{\mu\Omega_{-}(t)}{2} \\
+    \frac{\mu\Omega_{-}(t)}{2} & 0 & - \frac{A}{2} - \frac{B \gamma_c}{2} - \alpha_{-}(t - t_{-}) + \delta_{-} &        0         \\
+    0 & \frac{\mu\Omega_{-}(t)}{2} &         0         & \frac{A}{2} + \frac{B \gamma_c}{2} - \alpha_{-} (t - t_{-}) + \delta_{-} \\
 \end{pmatrix}\,,
 $$ {#eq-hamiltonian-diag-matrix-minus}
 
@@ -469,7 +469,7 @@ TODO
 After a Landau-Zener transition, the probability of population transfer is [@LandauZener.jl]
 
 $$
-P_{LZ} = \exp\left(-2 \pi \frac{\vert\Omega\vert^2}{\vert\alpha\vert^2} \right)
+P_{LZ} = \exp\left(-2 \pi \frac{\vert\Omega\vert^2}{\vert\alpha\vert} \right)
 $$ {#eq-lz-probability}
 
 ## Dissipators for the Excited and Metastable Manifolds {#sec-dissipation}

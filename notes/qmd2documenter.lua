@@ -264,35 +264,25 @@ function Meta(meta)
     return {}
 end
 
--- First pass: collect section titles for cross-references
-local function collect_headers(doc)
-    for _, block in ipairs(doc.blocks) do
-        if block.t == "Header" then
-            local id = block.identifier
-            if id and id:match("^sec%-") then
-                local title = pandoc.utils.stringify(block.content)
-                section_titles[id] = title
-            end
-        end
-    end
-end
-
--- Handle headers: remove {#sec-...} anchors and filter out References section
+-- Handle headers: convert {#sec-...} to Documenter @id format and filter out References
 function Header(el)
-    -- Store section title for cross-references
     local id = el.identifier
-    if id and id:match("^sec%-") then
-        local title = pandoc.utils.stringify(el.content)
-        section_titles[id] = title
-    end
+    local title = pandoc.utils.stringify(el.content)
 
     -- Remove "References" header (handled separately in Documenter)
-    local title = pandoc.utils.stringify(el.content)
     if title == "References" then
         return {}
     end
 
-    -- Clear the identifier (Documenter doesn't use custom IDs)
+    -- Convert sec-* IDs to Documenter format: [Title](@id sec-name)
+    if id and id:match("^sec%-") then
+        section_titles[id] = title
+        -- Wrap content in a link with @id target
+        local link = pandoc.Link(el.content, "@id " .. id)
+        el.content = pandoc.Inlines({link})
+    end
+
+    -- Clear pandoc attributes (ID is now in the link if applicable)
     el.identifier = ""
     el.classes = {}
     el.attributes = {}
@@ -307,14 +297,14 @@ function Cite(el)
     if #el.citations == 1 then
         local id = el.citations[1].id
 
-        -- Handle @sec-name references -> [Section Title](@ref)
+        -- Handle @sec-name references -> [Section Title](@ref sec-name)
         if id:match("^sec%-") then
             local title = section_titles[id]
             if title then
-                return pandoc.Link(pandoc.Str(title), "@ref")
+                return pandoc.Link(pandoc.Str(title), "@ref " .. id)
             else
-                -- Fallback: use the ID without sec- prefix
-                return pandoc.Link(pandoc.Str(id), "@ref")
+                -- Fallback: use the ID as both text and reference
+                return pandoc.Link(pandoc.Str(id), "@ref " .. id)
             end
         end
 
@@ -427,9 +417,6 @@ end
 
 -- Main filter: process document
 function Pandoc(doc)
-    -- First pass: collect section titles
-    collect_headers(doc)
-
     -- Process all blocks
     local new_blocks = {}
 

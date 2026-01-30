@@ -121,6 +121,7 @@ return a generator, and a list of labels, each label a tuple of strings.
 * `ω₋ = nothing`: The control ``ω_{-}(t) ≡ ∂ϕ_{-}(t)/∂t``
 * `Ω₊ = nothing`: The control ``Ω_{+}(t)``
 * `Ω₋ = nothing`: The control ``Ω_{-}(t)``
+* `μ = 1.0`: The reduction factor for ``Ω_{±}(t)``.
 * `Λ = nothing`: The time-dependent optical drive. If given, implies the use of
   the full optical Hilbert space.
 * `frame = :rwa`: One of `:rwa` or `:diag`. If `:diag`, diagonalize the
@@ -161,6 +162,7 @@ function make_nv_system(;
     ω₋ = nothing,
     Ω₊ = nothing,
     Ω₋ = nothing,
+    μ = 1.0,
     Λ = nothing, # incoherent optical excitation (proportional to laser power)
     Γ::Float64 = 0.0,
     Γ₀::Float64 = 0.0,
@@ -284,14 +286,14 @@ function make_nv_system(;
     Ĥ_ω₊ = -1.0 * ketbra("+1", "+1", labels_S; strict = false) ⊗ 𝟙_I
     Ĥ_ω₋ = -1.0 * ketbra("-1", "-1", labels_S; strict = false) ⊗ 𝟙_I
     Ĥ_Ω₊ =
-        (
-            0.5 * ketbra("+1", "0", labels_S; strict = false) +
-            0.5 * ketbra("0", "+1", labels_S; strict = false)
+        (μ / 2) * (
+            ketbra("+1", "0", labels_S; strict = false) +
+            ketbra("0", "+1", labels_S; strict = false)
         ) ⊗ 𝟙_I
     Ĥ_Ω₋ =
-        (
-            0.5 * ketbra("-1", "0", labels_S; strict = false) +
-            0.5 * ketbra("0", "-1", labels_S; strict = false)
+        (μ / 2) * (
+            ketbra("-1", "0", labels_S; strict = false) +
+            ketbra("0", "-1", labels_S; strict = false)
         ) ⊗ 𝟙_I
 
 

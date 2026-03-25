@@ -73,7 +73,6 @@ L, labels = make_nv_system(;
     ω₋ = LinearChirp(; t₀, α),
     Γ = (1 / (12ns)),
     Λ,
-    frame = :rwa,
 );
 
 labels
@@ -147,46 +146,3 @@ plot!(; legend = :outertop, legend_column = -1, xlabel = "time (μs)", ylabel = 
 pops[:, 2000]
 
 pops[:, end]
-
-# ## Diagonal Frame
-
-# **TODO: why does this not reproduce the dynamics?**
-
-# +
-L_diag, labels = make_nv_system(;
-    DEFAULTS...,
-    Ω₋ = ConstantDrive(17γcB_per_2π),
-    ω₋ = LinearChirp(; t₀, α),
-    Γ = (1 / (12ns)),
-    Λ,
-    frame = :diag,
-);
-
-states_diag = propagate(
-    ρ₀,
-    L_diag,
-    tlist;
-    method = Newton,
-    check = true,
-    storage = true,
-    show_progress = true,
-);
-
-pops_diag = get_pops(states_diag);
-
-plot(tlist, pops_diag[findfirst(==(("G", "0", "↑")), labels), :]; label = "|0↑⟩")
-plot!(tlist, pops_diag[findfirst(==(("G", "0", "↓")), labels), :]; label = "|0↓⟩")
-plot!(tlist, pops_diag[findfirst(==(("G", "-1", "↑")), labels), :]; label = "|-1↑⟩")
-plot!(tlist, pops_diag[findfirst(==(("G", "-1", "↓")), labels), :]; label = "|-1↓⟩")
-plot!(tlist, t -> Λ(t) / Λ.amplitude; label = "Λ(t)/|Λ|", color = :black)
-plot!(;
-    tite = "diagonal frame",
-    legend = :outertop,
-    legend_column = -1,
-    xlabel = "time (μs)",
-    ylabel = "population"
-)
-
-# -
-
-pops_diag[:, 2000]

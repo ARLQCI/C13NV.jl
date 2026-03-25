@@ -98,6 +98,34 @@ function _n(A, n, N)
 end
 
 
+# see `frame_transformation_matrix` in `FrameTransformations` for public
+# function
+function _frame_transformation_matrix(A_zz::Real, A_zx::Real, A_zy::Real)
+    A = √(A_zz^2 + A_zx^2 + A_zy^2)
+    if A ≈ 0
+        return ComplexF64[1 0; 0 1]
+    end
+    # Handle degenerate case where off-diagonal hyperfine elements are negligible
+    # relative to A_zz (i.e., matrix is effectively already diagonal)
+    off_diag_norm = √(A_zx^2 + A_zy^2)
+    if off_diag_norm < 1e-14 * abs(A_zz) || off_diag_norm < 1e-30
+        if A_zz ≥ 0
+            return ComplexF64[1 0; 0 1]
+        else
+            return ComplexF64[0 1; 1 0]
+        end
+    end
+    # General case from eq-R in notes/hamiltonian.qmd
+    denom_plus = √(A^2 + A * A_zz)
+    denom_minus = √(A^2 - A * A_zz)
+    R =
+        (1 / √2) * ComplexF64[
+            (A_zz+A)/denom_plus        (A_zz-A)/denom_minus
+            (A_zx+𝕚*A_zy)/denom_plus   (A_zx+𝕚*A_zy)/denom_minus
+        ]
+    return R
+end
+
 
 """Construct the system.
 
@@ -124,8 +152,6 @@ return a generator, and a list of labels, each label a tuple of strings.
 * `μ = 1.0`: The reduction factor for ``Ω_{±}(t)``.
 * `Λ = nothing`: The time-dependent optical drive. If given, implies the use of
   the full optical Hilbert space.
-* `frame = :rwa`: One of `:rwa` or `:diag`. If `:diag`, diagonalize the
-  hyperfine interaction.
 * `θ = 0.0`: The azimuthal angle of the magnetic field
 * `ϕ = 0.0`: The polar angle of the magnetic field
 * `γ_c = 1.07kHz/Gauss`: The C-13 nuclear gyromagnetic ratio
@@ -174,6 +200,9 @@ function make_nv_system(;
     γ₊₁::Float64 = 0.0,
     γ₋₁::Float64 = 0.0,
     frame::Symbol = :rwa,  # or :diag
+    # The `frame` argument is undocumented: this turns out to be a dead end,
+    # and not really useful. It just felt bed to remove the code entirely, in
+    # case we ever come back to it.
 )
 
     for value in (Γ, Γ₀, Γ₊₁, Γ₋₁, Σ₀, Σ₊₁, Σ₋₁, γ₊₁, γ₋₁)
@@ -250,31 +279,40 @@ function make_nv_system(;
     )
     Ĥ_0 = δ̂ ⊗ 𝟙_I
     for n = 1:N
-        B̂_I_n = B_x * _n(Î_x, n, N) + B_y * _n(Î_y, n, N) + B_z * _n(Î_z, n, N)
+        B̂_I_n = B_x * Î_x + B_y * Î_y + B_z * Î_z
         @assert norm(
             # just to check that the math is consistent
             B̂_I_n -
-            (B / 2) * _n(
-                [
-                                cos(θ)                   (sin(θ)*cos(ϕ)-𝕚*sin(θ)*sin(ϕ))
-                    (sin(θ)*cos(ϕ)+𝕚*sin(θ)*sin(ϕ))                        -cos(θ)
-                ],
-                n,
-                N
-            )
+            (B / 2) * [
+                            cos(θ)                   (sin(θ)*cos(ϕ)-𝕚*sin(θ)*sin(ϕ))
+                (sin(θ)*cos(ϕ)+𝕚*sin(θ)*sin(ϕ))                        -cos(θ)
+            ]
         ) < 1e-14
-        Ĥ_0 = Ĥ_0 - γ_c * (𝟙_S ⊗ B̂_I_n)
         A_zz = hyperfine_tensors[n][3, 3]
         A_zx = hyperfine_tensors[n][3, 1]
         A_zy = hyperfine_tensors[n][3, 2]
         if frame == :rwa
-            Â_I_n = _n(0.5 * [
+            Ĥ_0 = Ĥ_0 - γ_c * (𝟙_S ⊗ _n(B̂_I_n, n, N))
+            Â_I_n = 0.5 * [
                     (A_zz)    (A_zx-𝕚*A_zy)
                 (A_zx+𝕚*A_zy)     (-A_zz)
-            ], n, N)
-            Ĥ_0 = Ĥ_0 + Ŝ_z ⊗ Â_I_n
+            ]
+            Ĥ_0 = Ĥ_0 + Ŝ_z ⊗ _n(Â_I_n, n, N)
         elseif frame == :diag
+            R̂ = _frame_transformation_matrix(A_zz, A_zx, A_zy)
             A_n = √(A_zz^2 + A_zx^2 + A_zy^2)
+            B̂_I_n_diag = R̂' * B̂_I_n * R̂
+            if θ == ϕ == 0.0
+                # just to check that the math is consistent
+                B̂_I_n_diag_expected =
+                    (B / (2*A_n)) * [
+                                A_zz         -√(A_zx^2 + A_zy^2)
+                        -√(A_zx^2 + A_zy^2)         -A_zz
+                    ]
+                diff = norm(B̂_I_n_diag - B̂_I_n_diag_expected)
+                @assert diff < 1e-12 "Unexpected B in diagonal frame: error $diff"
+            end
+            Ĥ_0 = Ĥ_0 - γ_c * (𝟙_S ⊗ _n(B̂_I_n_diag, n, N))
             Ĥ_0 = Ĥ_0 + A_n * (Ŝ_z ⊗ _n(Î_z, n, N))
         else
             error("`frame` must be one of :rwa, :diag, not $repr(frame)")

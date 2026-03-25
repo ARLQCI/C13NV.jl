@@ -59,6 +59,10 @@ This code formatting MUST be run every time any `.jl` file is modified.
 
 The `notes` subdirectory contains a detailed derivation of the system Hamiltonian, as implemented by the `make_nv_system` function. The file `notes/hamiltonian.qmd` is the canonical source, written in Quarto markdown format. The same material is also part of the package documentation, in `docs/src/hamiltonian.md` (in Documenter-markdown format). The file `docs/src/hamiltonian.md` is maintained manually and should not be modified. To help with keeping `docs/src/hamiltonian.md` in sync with `notes/hamiltonian.qmd`, running `make -C notes hamiltonian.md` produces a file `notes/hamiltonian.md` via `pandoc` and the lua-filter `notes/qmd2documenter.lua` that partially translates Quarto markdown to Documenter markdown. The file `notes/hamiltonian.md` should be as close to `docs/src/hamiltonian.md` as possible.
 
+## Docstrings
+
+Each Julia function that is not explicitly private or has a name starting with an underscore must have a docstring. The format for the docstring is to have a "title" / description of the function in the first line, less than 80 characters, followed by a fenced code block (```` ```julia...``` ````; do not use an indented code block). The code block should be valid Julia code that illustrates a default call to the function. If the function returns something, the code block should be an assignment with instructive names for the returned variables. The code block should be readable as the start of an active-voice sentence that continues after the code block. Following the paragraph started by the code block, use section `#Arguments`, `# Keyword Arguments`, `# Returns`, etc, as necessary. Be as concise as possible. For example, if the code block paragraph already fully explains the return type, an explicit `# Returns` section is unnecessary. Use Unicode as much as possible for any math in the docstring.
+
 ## General Guidelines
 
 * Make sure to only use explicit imports in Julia code, and that there are no imported functions or constants that are not actually used.

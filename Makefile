@@ -48,7 +48,7 @@ clean: ## Clean up build/doc/testing artifacts
 	rm -rf docs/build
 
 codestyle: test/Manifest.toml ## Apply the codestyle to the entire project
-	$(JULIA) --project=test -e 'using JuliaFormatter; format(["src", "docs", "test"], verbose=true)'
+	$(JULIA) --project=test -e 'using JuliaFormatter; format(["src", "docs", "test", "examples"], verbose=true)'
 
 examples: ## Generate all `.ipynb` files in the `examples` subfolder (use `make EXECTUE=--execute examples` to execute the examples during the conversion)
 	make -C examples EXECUTE=$(EXECUTE) ipynb
@@ -65,6 +65,7 @@ distclean: clean ## Restore to a clean checkout state
 	rm -f Manifest.toml
 	rm -f test/Manifest.toml
 	rm -f docs/Manifest.toml
+	rm -rf examples/.ipynb_checkpoints
 
 test/Manifest.toml: test/Project.toml
 	@git config --local blame.ignoreRevsFile .git-blame-ignore-revs

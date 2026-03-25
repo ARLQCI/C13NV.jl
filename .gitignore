@@ -7,3 +7,5 @@
 /examples/Manifest.toml
 /docs/build/
 /coverage/
+.ipynb_checkpoints
+.claude

@@ -435,4 +435,40 @@ function make_nv_system(;
 
 end
 
+
+"""Get matrix of population for `states`.
+
+```
+pops = get_pops(states)
+```
+
+takes `states` as returned by `propagate` with `storage=true`, assuming a
+vectorized density matrix as the initial state. That is, `states` is assumed
+to be a complex array with shape ``(N², nt)`` where ``N`` is the size of the
+Hilbert space, and `nt` is the number of time grid points.
+
+The returned `pops` is a real-valued matrix with shape ``(N, nt)`` containing
+the population for each level.
+
+If `states` is given as single vectorized density matrix, a time grid
+dimension with `nt=1` is implied.
+"""
+function get_pops(states)::Matrix{Float64}
+    if ndims(states) == 1
+        # single state - add time dimension
+        return get_pops(reshape(states, (length(states), 1)))
+    end
+    N², nt = size(states)
+    N = isqrt(N²)
+    pops = zeros(N, nt)
+    for i = 1:nt
+        for j = 0:(N-1)
+            p = abs(states[(j*N)+j+1, i])
+            pops[j+1, i] = p
+        end
+    end
+    return pops
+end
+
+
 end

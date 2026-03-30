@@ -8,13 +8,13 @@ const B::Float64 = 120Gauss
 const γ_c::Float64 = 1.07kHz / Gauss
 const δ₋::Float64 = 0.0
 const δ₊::Float64 = 0.0
-const Γ::Float64 = (1 / (12ns))
-const Γ₀::Float64 = 0.0
-const Γ₊₁::Float64 = (1 / (24ns + 0.9ns))
-const Γ₋₁::Float64 = (1 / (24ns + 0.9ns))
-const Σ₀::Float64 = (1 / (219ns))
-const Σ₊₁::Float64 = (1 / (219ns))
-const Σ₋₁::Float64 = (1 / (219ns))
+const Γ::Float64 = (1 / (12ns))  # 1 / 15 ?
+const Γ₀::Float64 = 0.0  # 1 / 167 ns
+const Γ₊₁::Float64 = (1 / (24ns + 0.9ns))  # 1 / 20
+const Γ₋₁::Float64 = (1 / (24ns + 0.9ns))  # 1/ 20
+const Σ₀::Float64 = (1 / (438ns))  # 1 / 219 combined |M⟩ → |G⟩
+const Σ₊₁::Float64 = (1 / (876ns))
+const Σ₋₁::Float64 = (1 / (876ns))
 
 """
 A dict of keyword arguments with default values.
@@ -33,8 +33,8 @@ make_nv_system(;
     Γ₀ = 0.0,
     Γ₊₁ = (1 / (24ns + 0.9ns)),
     Γ₋₁ = (1 / (24ns + 0.9ns)),
-    Σ₀ = (1 / (219ns)),
-    Σ₊₁ = (1 / (219ns)),
+    Σ₀ = (1 / (1.1μs)),
+    Σ₊₁ = (1 / (5ns)),
     Σ₋₁ = (1 / (219ns)),
 )
 ```

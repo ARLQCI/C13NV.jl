@@ -3,6 +3,7 @@ module Amplitudes
 
 using ComponentArrays: ComponentVector, Axis
 using QuantumControl.Controls: ParameterizedFunction
+using QuantumPropagators.Shapes: flattop
 
 
 struct LinearChirp <: ParameterizedFunction
@@ -33,6 +34,29 @@ end
 
 function (control::ConstantDrive)(t)
     return control.Ω
+end
+
+
+@kwdef struct SinglePump <: Function
+    amplitude::Float64
+    tlist::Vector{Float64}
+    pump_width::Float64
+    ramp_width::Float64
+    pump_at::Float64
+end
+
+
+function SinglePump(amplitude; kwargs...)
+    return SinglePump(; amplitude, kwargs...)
+end
+
+
+function (Λ::SinglePump)(t::Float64)
+    T = Λ.tlist[end]
+    w = Λ.pump_width
+    r = Λ.ramp_width
+    return Λ.amplitude *
+           flattop(t; t₀ = Λ.pump_at * T, T = (Λ.pump_at + w) * T, t_rise = (r * w * T))
 end
 
 end
